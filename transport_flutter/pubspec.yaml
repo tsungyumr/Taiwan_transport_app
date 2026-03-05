@@ -1,0 +1,31 @@
+name: taiwan_transport_app
+description: 台灣交通時刻表 App - 大台北公車、台鐵、高鐵
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  http: ^1.1.0
+  intl: ^0.18.1
+  flutter_riverpod: ^2.5.1
+  provider: ^6.1.1
+  json_annotation: ^4.8.1
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  json_serializable: ^6.7.1
+  build_runner: ^2.4.7
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/

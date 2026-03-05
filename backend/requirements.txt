@@ -1,0 +1,11 @@
+# Taiwan Transport Scraper API
+# Backend: Python + FastAPI
+
+aiosqlite
+beautifulsoup4
+playwright
+fastapi
+httpx
+lxml
+uvicorn
+pydantic

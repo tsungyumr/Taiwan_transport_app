@@ -1,0 +1,664 @@
+{
+  "route_id": "0100030700",
+  "route_name": "",
+  "departure_stop": "",
+  "arrival_stop": "",
+  "operator": "",
+  "direction": 0,
+  "stops": [
+    {
+      "sequence": 0,
+      "name": "",
+      "id": "0",
+      "latitude": null,
+      "longitude": null,
+      "eta": null,
+      "buses": []
+    },
+    {
+      "sequence": 1,
+      "name": "",
+      "id": "1",
+      "latitude": null,
+      "longitude": null,
+      "eta": null,
+      "buses": []
+    },
+    {
+      "sequence": 2,
+      "name": "",
+      "id": "2",
+      "latitude": null,
+      "longitude": null,
+      "eta": 0,
+      "buses": []
+    },
+    {
+      "sequence": 3,
+      "name": "",
+      "id": "3",
+      "latitude": null,
+      "longitude": null,
+      "eta": 2,
+      "buses": []
+    },
+    {
+      "sequence": 4,
+      "name": "",
+      "id": "4",
+      "latitude": null,
+      "longitude": null,
+      "eta": 2,
+      "buses": []
+    },
+    {
+      "sequence": 5,
+      "name": "",
+      "id": "5",
+      "latitude": null,
+      "longitude": null,
+      "eta": 3,
+      "buses": []
+    },
+    {
+      "sequence": 6,
+      "name": "",
+      "id": "6",
+      "latitude": null,
+      "longitude": null,
+      "eta": 0,
+      "buses": [
+        {
+          "plate_number": "EAL-1169",
+          "bus_type": 1,
+          "remaining_seats": 1
+        }
+      ]
+    },
+    {
+      "sequence": 7,
+      "name": "",
+      "id": "7",
+      "latitude": null,
+      "longitude": null,
+      "eta": 0,
+      "buses": [
+        {
+          "plate_number": "363-U5",
+          "bus_type": 1,
+          "remaining_seats": 1
+        }
+      ]
+    },
+    {
+      "sequence": 8,
+      "name": "",
+      "id": "8",
+      "latitude": null,
+      "longitude": null,
+      "eta": 0,
+      "buses": []
+    },
+    {
+      "sequence": 9,
+      "name": "",
+      "id": "9",
+      "latitude": null,
+      "longitude": null,
+      "eta": 0,
+      "buses": []
+    },
+    {
+      "sequence": 10,
+      "name": "",
+      "id": "10",
+      "latitude": null,
+      "longitude": null,
+      "eta": 0,
+      "buses": []
+    },
+    {
+      "sequence": 11,
+      "name": "",
+      "id": "11",
+      "latitude": null,
+      "longitude": null,
+      "eta": 4,
+      "buses": [
+        {
+          "plate_number": "045-U5",
+          "bus_type": 1,
+          "remaining_seats": 1
+        }
+      ]
+    },
+    {
+      "sequence": 12,
+      "name": "",
+      "id": "12",
+      "latitude": null,
+      "longitude": null,
+      "eta": 1,
+      "buses": []
+    },
+    {
+      "sequence": 13,
+      "name": "",
+      "id": "13",
+      "latitude": null,
+      "longitude": null,
+      "eta": 5,
+      "buses": []
+    },
+    {
+      "sequence": 14,
+      "name": "",
+      "id": "14",
+      "latitude": null,
+      "longitude": null,
+      "eta": 7,
+      "buses": []
+    },
+    {
+      "sequence": 15,
+      "name": "",
+      "id": "15",
+      "latitude": null,
+      "longitude": null,
+      "eta": 0,
+      "buses": [
+        {
+          "plate_number": "EAL-0072",
+          "bus_type": 1,
+          "remaining_seats": 1
+        },
+        {
+          "plate_number": "EAA-151",
+          "bus_type": 1,
+          "remaining_seats": 3
+        }
+      ]
+    },
+    {
+      "sequence": 16,
+      "name": "",
+      "id": "16",
+      "latitude": null,
+      "longitude": null,
+      "eta": 0,
+      "buses": []
+    },
+    {
+      "sequence": 17,
+      "name": "",
+      "id": "17",
+      "latitude": null,
+      "longitude": null,
+      "eta": 1,
+      "buses": []
+    },
+    {
+      "sequence": 18,
+      "name": "",
+      "id": "18",
+      "latitude": null,
+      "longitude": null,
+      "eta": 0,
+      "buses": []
+    },
+    {
+      "sequence": 19,
+      "name": "",
+      "id": "19",
+      "latitude": null,
+      "longitude": null,
+      "eta": 2,
+      "buses": []
+    },
+    {
+      "sequence": 20,
+      "name": "",
+      "id": "20",
+      "latitude": null,
+      "longitude": null,
+      "eta": 4,
+      "buses": []
+    },
+    {
+      "sequence": 21,
+      "name": "",
+      "id": "21",
+      "latitude": null,
+      "longitude": null,
+      "eta": 5,
+      "buses": []
+    },
+    {
+      "sequence": 22,
+      "name": "",
+      "id": "22",
+      "latitude": null,
+      "longitude": null,
+      "eta": 6,
+      "buses": []
+    },
+    {
+      "sequence": 23,
+      "name": "",
+      "id": "23",
+      "latitude": null,
+      "longitude": null,
+      "eta": 7,
+      "buses": []
+    },
+    {
+      "sequence": 24,
+      "name": "",
+      "id": "24",
+      "latitude": null,
+      "longitude": null,
+      "eta": 9,
+      "buses": []
+    },
+    {
+      "sequence": 25,
+      "name": "",
+      "id": "25",
+      "latitude": null,
+      "longitude": null,
+      "eta": 10,
+      "buses": []
+    },
+    {
+      "sequence": 26,
+      "name": "",
+      "id": "26",
+      "latitude": null,
+      "longitude": null,
+      "eta": 12,
+      "buses": []
+    },
+    {
+      "sequence": 27,
+      "name": "",
+      "id": "27",
+      "latitude": null,
+      "longitude": null,
+      "eta": 13,
+      "buses": [
+        {
+          "plate_number": "EAL-1160",
+          "bus_type": 1,
+          "remaining_seats": 1
+        }
+      ]
+    },
+    {
+      "sequence": 28,
+      "name": "",
+      "id": "28",
+      "latitude": null,
+      "longitude": null,
+      "eta": 0,
+      "buses": []
+    },
+    {
+      "sequence": 29,
+      "name": "",
+      "id": "29",
+      "latitude": null,
+      "longitude": null,
+      "eta": 1,
+      "buses": [
+        {
+          "plate_number": "EAL-0081",
+          "bus_type": 1,
+          "remaining_seats": 1
+        }
+      ]
+    },
+    {
+      "sequence": 30,
+      "name": "",
+      "id": "30",
+      "latitude": null,
+      "longitude": null,
+      "eta": 1,
+      "buses": []
+    },
+    {
+      "sequence": 31,
+      "name": "",
+      "id": "31",
+      "latitude": null,
+      "longitude": null,
+      "eta": 3,
+      "buses": []
+    },
+    {
+      "sequence": 32,
+      "name": "",
+      "id": "32",
+      "latitude": null,
+      "longitude": null,
+      "eta": 5,
+      "buses": []
+    },
+    {
+      "sequence": 33,
+      "name": "",
+      "id": "33",
+      "latitude": null,
+      "longitude": null,
+      "eta": 7,
+      "buses": []
+    },
+    {
+      "sequence": 34,
+      "name": "",
+      "id": "34",
+      "latitude": null,
+      "longitude": null,
+      "eta": 11,
+      "buses": []
+    },
+    {
+      "sequence": 35,
+      "name": "",
+      "id": "35",
+      "latitude": null,
+      "longitude": null,
+      "eta": 14,
+      "buses": []
+    },
+    {
+      "sequence": 36,
+      "name": "",
+      "id": "36",
+      "latitude": null,
+      "longitude": null,
+      "eta": 14,
+      "buses": []
+    },
+    {
+      "sequence": 37,
+      "name": "",
+      "id": "37",
+      "latitude": null,
+      "longitude": null,
+      "eta": 16,
+      "buses": []
+    },
+    {
+      "sequence": 38,
+      "name": "",
+      "id": "38",
+      "latitude": null,
+      "longitude": null,
+      "eta": 2,
+      "buses": [
+        {
+          "plate_number": "EAL-3135",
+          "bus_type": 1,
+          "remaining_seats": 1
+        }
+      ]
+    },
+    {
+      "sequence": 39,
+      "name": "",
+      "id": "39",
+      "latitude": null,
+      "longitude": null,
+      "eta": 1,
+      "buses": []
+    },
+    {
+      "sequence": 40,
+      "name": "",
+      "id": "40",
+      "latitude": null,
+      "longitude": null,
+      "eta": 2,
+      "buses": []
+    },
+    {
+      "sequence": 41,
+      "name": "",
+      "id": "41",
+      "latitude": null,
+      "longitude": null,
+      "eta": 3,
+      "buses": []
+    },
+    {
+      "sequence": 42,
+      "name": "",
+      "id": "42",
+      "latitude": null,
+      "longitude": null,
+      "eta": 6,
+      "buses": []
+    },
+    {
+      "sequence": 43,
+      "name": "",
+      "id": "43",
+      "latitude": null,
+      "longitude": null,
+      "eta": 8,
+      "buses": [
+        {
+          "plate_number": "EAA-158",
+          "bus_type": 1,
+          "remaining_seats": 1
+        }
+      ]
+    },
+    {
+      "sequence": 44,
+      "name": "",
+      "id": "44",
+      "latitude": null,
+      "longitude": null,
+      "eta": 2,
+      "buses": []
+    },
+    {
+      "sequence": 45,
+      "name": "",
+      "id": "45",
+      "latitude": null,
+      "longitude": null,
+      "eta": 5,
+      "buses": []
+    },
+    {
+      "sequence": 46,
+      "name": "",
+      "id": "46",
+      "latitude": null,
+      "longitude": null,
+      "eta": 6,
+      "buses": []
+    },
+    {
+      "sequence": 47,
+      "name": "",
+      "id": "47",
+      "latitude": null,
+      "longitude": null,
+      "eta": 9,
+      "buses": []
+    },
+    {
+      "sequence": 48,
+      "name": "",
+      "id": "48",
+      "latitude": null,
+      "longitude": null,
+      "eta": 11,
+      "buses": []
+    },
+    {
+      "sequence": 49,
+      "name": "",
+      "id": "49",
+      "latitude": null,
+      "longitude": null,
+      "eta": 11,
+      "buses": []
+    },
+    {
+      "sequence": 50,
+      "name": "",
+      "id": "50",
+      "latitude": null,
+      "longitude": null,
+      "eta": 13,
+      "buses": []
+    },
+    {
+      "sequence": 51,
+      "name": "",
+      "id": "51",
+      "latitude": null,
+      "longitude": null,
+      "eta": 14,
+      "buses": []
+    },
+    {
+      "sequence": 52,
+      "name": "",
+      "id": "52",
+      "latitude": null,
+      "longitude": null,
+      "eta": 0,
+      "buses": []
+    },
+    {
+      "sequence": 53,
+      "name": "",
+      "id": "53",
+      "latitude": null,
+      "longitude": null,
+      "eta": 2,
+      "buses": []
+    },
+    {
+      "sequence": 54,
+      "name": "",
+      "id": "54",
+      "latitude": null,
+      "longitude": null,
+      "eta": 2,
+      "buses": []
+    },
+    {
+      "sequence": 55,
+      "name": "",
+      "id": "55",
+      "latitude": null,
+      "longitude": null,
+      "eta": 5,
+      "buses": []
+    },
+    {
+      "sequence": 56,
+      "name": "",
+      "id": "56",
+      "latitude": null,
+      "longitude": null,
+      "eta": 7,
+      "buses": []
+    },
+    {
+      "sequence": 57,
+      "name": "",
+      "id": "57",
+      "latitude": null,
+      "longitude": null,
+      "eta": 9,
+      "buses": []
+    },
+    {
+      "sequence": 58,
+      "name": "",
+      "id": "58",
+      "latitude": null,
+      "longitude": null,
+      "eta": 12,
+      "buses": []
+    },
+    {
+      "sequence": 59,
+      "name": "",
+      "id": "59",
+      "latitude": null,
+      "longitude": null,
+      "eta": 0,
+      "buses": []
+    },
+    {
+      "sequence": 60,
+      "name": "",
+      "id": "60",
+      "latitude": null,
+      "longitude": null,
+      "eta": 3,
+      "buses": []
+    },
+    {
+      "sequence": 61,
+      "name": "",
+      "id": "61",
+      "latitude": null,
+      "longitude": null,
+      "eta": 3,
+      "buses": []
+    },
+    {
+      "sequence": 62,
+      "name": "",
+      "id": "62",
+      "latitude": null,
+      "longitude": null,
+      "eta": 4,
+      "buses": []
+    },
+    {
+      "sequence": 63,
+      "name": "",
+      "id": "63",
+      "latitude": null,
+      "longitude": null,
+      "eta": 6,
+      "buses": []
+    },
+    {
+      "sequence": 64,
+      "name": "",
+      "id": "64",
+      "latitude": null,
+      "longitude": null,
+      "eta": 8,
+      "buses": []
+    },
+    {
+      "sequence": 65,
+      "name": "",
+      "id": "65",
+      "latitude": null,
+      "longitude": null,
+      "eta": 11,
+      "buses": [
+        {
+          "plate_number": "EAL-0086",
+          "bus_type": 1,
+          "remaining_seats": 1
+        }
+      ]
+    }
+  ],
+  "total_stops": 66
+}
