@@ -19,6 +19,7 @@ from datetime import datetime, date
 from playwright.async_api import async_playwright, Browser, Page
 from THSR_scraper import scrape_thsr_stations
 from scrapers.taipei_bus_scraper import TaipeiBusScraper
+# 快取管理器會在 lifespan 中初始化
 import os
 import random
 import logging
@@ -127,11 +128,15 @@ def retry_on_error(max_retries=3, delay=2):
 _pw = None
 _browser: Browser = None
 
+# 公車快取管理器實例
+bus_cache_manager = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
-    global _pw, _browser
+    global _pw, _browser, bus_cache_manager
+
     # Startup: init Playwright
     _pw = await async_playwright().start()
     _browser = await _pw.chromium.launch(
@@ -139,7 +144,23 @@ async def lifespan(app: FastAPI):
         args=['--disable-blink-features=AutomationControlled']
     )
     print("Playwright browser started")
+
+    # Startup: 初始化公車快取管理器（懶加載模式，不預先撈取）
+    from cache.bus_cache_manager import TaipeiBusCacheManager
+    bus_cache_manager = TaipeiBusCacheManager()  # 懶加載模式，不設定更新間隔
+    await bus_cache_manager.start()
+    print("公車快取管理器已啟動（懶加載模式，快取過期時間：60秒）")
+
     yield
+
+    # Shutdown: 停止公車快取管理器
+    if bus_cache_manager:
+        try:
+            await bus_cache_manager.stop()
+            print("公車快取管理器已停止")
+        except Exception as e:
+            print(f"Bus cache manager stop ignored: {e}")
+
     # Shutdown: close browser and HTTP clients
     if _browser:
         try:
@@ -352,7 +373,7 @@ def get_http_client() -> httpx.AsyncClient:
 
 class TaiwanRailwayScraper:
     """台灣鐵路爬蟲 - 使用 Playwright"""
-    
+
     # 台鐵站點代碼說明：
     # 1xx = 西部干線 (基隆-屏東)
     # 2xx = 西部干線山線 (苗栗-彰化)
@@ -362,7 +383,45 @@ class TaiwanRailwayScraper:
     # 4xx = 宜蘭線 (八堵-蘇澳)
     # 5xx = 北迴線 (花蓮-蘇澳)
     # 7xx = 支線 (內灣/六家/沙崙)
-    
+
+    # 車種分類
+    LONG_DISTANCE_TRAINS = ["自強", "莒光", "太魯閣", "普悠瑪", "復興"]  # 長途列車，只停主要車站
+    LOCAL_TRAINS = ["區間", "區間快", "普通", "電車"]  # 通勤列車，停所有車站
+
+    # 主要車站（長途列車會停靠）
+    MAJOR_STATIONS = {
+        "100", "101", "102", "106", "107", "108", "109", "110", "112", "115", "117",  # 基隆-中壢
+        "122", "126", "200", "209", "212", "217", "220", "244", "270", "278",  # 新竹-屏東
+        "324", "401", "404", "420", "423", "426", "501", "508", "512",  # 東部幹線
+    }
+
+    # 站點間的實際距離（公里）- 西部幹線主要站點
+    STATION_DISTANCES = {
+        # 基隆到高雄主要站點距離（約略值）
+        "100": 0,      # 基隆
+        "101": 2.1,    # 八堵
+        "102": 5.8,    # 七堵
+        "103": 10.8,   # 五堵
+        "104": 15.3,   # 汐止
+        "106": 19.9,   # 南港
+        "107": 21.8,   # 松山
+        "108": 28.3,   # 台北
+        "109": 31.1,   # 萬華
+        "110": 35.5,   # 板橋
+        "112": 44.9,   # 樹林
+        "115": 62.3,   # 桃園
+        "117": 72.1,   # 中壢
+        "122": 117.2,  # 新竹
+        "126": 140.6,  # 竹南
+        "200": 158.1,  # 苗栗
+        "209": 193.3,  # 豐原
+        "212": 210.6,  # 台中
+        "217": 249.0,  # 彰化
+        "220": 267.8,  # 員林
+        "244": 318.6,  # 台南
+        "270": 345.2,  # 高雄
+    }
+
     STATIONS = {
         # ========== 西部干線 (基隆-屏東) ==========
         "100": "基隆", "101": "八堵", "102": "七堵", "103": "五堵", "104": "汐止",
@@ -576,9 +635,12 @@ class TaiwanRailwayScraper:
                             ))
                     except Exception as e:
                         continue
-            
+
+            # 根據起訖站距離過濾不合理的車種
+            results = self._filter_trains_by_distance(results, from_station, to_station)
+
             return results
-            
+
         except Exception as e:
             print(f"TRA scrape error: {e}")
             raise
@@ -589,27 +651,34 @@ class TaiwanRailwayScraper:
         """取得模擬資料"""
         from_name = self.STATIONS.get(from_station, from_station)
         to_name = self.STATIONS.get(to_station, to_station)
-        
+
         from_code = int(from_station) if from_station.isdigit() else 100
         to_code = int(to_station) if to_station.isdigit() else 200
         diff = abs(to_code - from_code)
-        
-        train_types = ["自強", "區間車", "莒光", "太魯閣", "普悠瑪"]
-        
+
+        # 判斷是否為短距離區間
+        is_short = self._is_short_distance(from_station, to_station)
+
+        # 短距離區間只使用區間車
+        if is_short:
+            train_types = ["區間", "區間快"]
+        else:
+            train_types = ["自強", "區間", "莒光", "太魯閣", "普悠瑪"]
+
         entries = []
-        base_times = ["06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00", 
-                      "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", 
+        base_times = ["06:00", "06:30", "07:00", "07:30", "08:00", "08:30", "09:00",
+                      "10:00", "11:00", "12:00", "13:00", "14:00", "15:00",
                       "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"]
-        
+
         for i, base_time in enumerate(base_times):
             hour, minute = map(int, base_time.split(':'))
             duration_minutes = diff * 3 + 10
             arrival_hour = (hour + (minute + duration_minutes) // 60) % 24
             arrival_minute = (minute + duration_minutes) % 60
-            
+
             dur_hour = duration_minutes // 60
             dur_min = duration_minutes % 60
-            
+
             entries.append(TrainTimeEntry(
                 train_no=str(100 + i),
                 train_type=train_types[i % len(train_types)],
@@ -620,8 +689,123 @@ class TaiwanRailwayScraper:
                 duration=f"{dur_hour}:{dur_min:02d}",
                 transferable=i % 2 == 0
             ))
+
+        return entries
         
         return entries
+
+    def _get_station_distance(self, from_code: str, to_code: str) -> float:
+        """
+        計算兩個站點之間的距離（公里）
+
+        Args:
+            from_code: 起點站代碼
+            to_code: 終點站代碼
+
+        Returns:
+            float: 距離（公里），如果無法計算則返回一個大數
+        """
+        try:
+            from_dist = self.STATION_DISTANCES.get(from_code)
+            to_dist = self.STATION_DISTANCES.get(to_code)
+
+            if from_dist is not None and to_dist is not None:
+                return abs(to_dist - from_dist)
+
+            # 如果沒有距離資料，嘗試用站代碼差值估算
+            from_int = int(from_code) if from_code.isdigit() else 0
+            to_int = int(to_code) if to_code.isdigit() else 0
+
+            # 不同路線視為長距離
+            if from_int // 100 != to_int // 100:
+                return 999.0
+
+            # 同一路線估算：每個站代碼差約 3-5 公里
+            return abs(to_int - from_int) * 4.0
+
+        except Exception:
+            return 999.0
+
+    def _is_short_distance(self, from_station: str, to_station: str) -> bool:
+        """
+        判斷是否為短距離區間（只會有區間車行駛）
+
+        短距離定義：
+        1. 距離小於 15 公里
+        2. 起訖站都不是主要車站
+
+        Args:
+            from_station: 起點站名稱或代碼
+            to_station: 終點站名稱或代碼
+
+        Returns:
+            bool: 是否為短距離區間
+        """
+        # 取得站代碼
+        from_code = from_station if from_station.isdigit() else self.STATION_NAMES.get(from_station, "")
+        to_code = to_station if to_station.isdigit() else self.STATION_NAMES.get(to_station, "")
+
+        if not from_code or not to_code:
+            return False
+
+        # 計算距離
+        distance = self._get_station_distance(from_code, to_code)
+
+        # 距離小於 15 公里視為短距離
+        if distance < 15.0:
+            return True
+
+        # 如果起訖站都不是主要車站，也視為短距離區間
+        is_from_major = from_code in self.MAJOR_STATIONS
+        is_to_major = to_code in self.MAJOR_STATIONS
+
+        if not is_from_major and not is_to_major and distance < 30.0:
+            return True
+
+        return False
+
+    def _filter_trains_by_distance(
+        self,
+        trains: List[TrainTimeEntry],
+        from_station: str,
+        to_station: str
+    ) -> List[TrainTimeEntry]:
+        """
+        根據起訖站距離過濾不合理的車種
+
+        短距離區間（如五堵-南港）只應該有區間車，不應該有自強號、莒光號等長途列車
+
+        Args:
+            trains: 原始列車列表
+            from_station: 起點站名稱
+            to_station: 終點站名稱
+
+        Returns:
+            List[TrainTimeEntry]: 過濾後的列車列表
+        """
+        # 判斷是否為短距離區間
+        is_short = self._is_short_distance(from_station, to_station)
+
+        if not is_short:
+            # 非短距離區間，返回所有車種
+            return trains
+
+        # 短距離區間，只保留區間車/區間快車/普通車
+        filtered = []
+        for train in trains:
+            train_type = train.train_type
+            # 檢查是否為通勤列車
+            is_local = any(local_type in train_type for local_type in self.LOCAL_TRAINS)
+
+            if is_local:
+                filtered.append(train)
+            else:
+                logger.debug(f"過濾掉不適用於短距離的車種: {train_type} {train.train_no}")
+
+        if len(filtered) < len(trains):
+            logger.info(f"短距離區間過濾: 從 {len(trains)} 班列車過濾為 {len(filtered)} 班區間車")
+
+        return filtered if filtered else trains  # 如果過濾後為空，返回原始資料
 
 
 # ==================== 高鐵 Playwright 爬蟲 ====================
@@ -894,30 +1078,39 @@ async def get_bus_routes(route_name: str = Query(None, description="路線名稱
     """
     取得公車路線列表
 
-    使用 ebus.gov.taipei 爬蟲取得真實的公車路線資料
+    懶加載模式：
+    - 首次請求時爬取資料並存入快取
+    - 後續請求從快取讀取（快取有效期1分鐘）
+    - 快取過期後自動重新爬取
     """
+    global bus_cache_manager
+
     try:
-        # 建立新的爬蟲實例並使用 async with 確保資源正確釋放
-        async with TaipeiBusScraper(headless=True) as scraper:
-            # 搜尋路線
-            if route_name:
-                routes = await scraper.search_routes(route_name)
-            else:
+        # 從快取管理器取得路線列表
+        if bus_cache_manager:
+            routes = await bus_cache_manager.get_all_routes()
+        else:
+            # 快取管理器尚未初始化，直接爬取
+            async with TaipeiBusScraper(headless=True) as scraper:
                 routes = await scraper.get_all_routes()
 
-            # 轉換為 API 需要的格式
-            result = []
-            for route in routes:  # 回傳所有路線，不限制數量
-                parts = route.description.split("-") if "-" in route.description else ["", ""]
-                result.append(BusRoute(
-                    route_id=route.route_id,
-                    route_name=route.route_name,
-                    departure_stop=parts[0].strip(),
-                    arrival_stop=parts[-1].strip() if len(parts) > 1 else "",
-                    operator=""
-                ))
+        # 如果有搜尋關鍵字，進行過濾
+        if route_name:
+            routes = [r for r in routes if route_name.lower() in r.route_name.lower()]
 
-            return result
+        # 轉換為 API 需要的格式
+        result = []
+        for route in routes:
+            parts = route.description.split("-") if "-" in route.description else ["", ""]
+            result.append(BusRoute(
+                route_id=route.route_id,
+                route_name=route.route_name,
+                departure_stop=parts[0].strip(),
+                arrival_stop=parts[-1].strip() if len(parts) > 1 else "",
+                operator=""
+            ))
+
+        return result
 
     except Exception as e:
         logger.error(f"取得公車路線失敗：{e}")
@@ -1025,144 +1218,133 @@ async def get_bus_route(route: str, direction: int = Query(0, description="方�
     """
     公車路線即時資料 - 站點列表 + 多輛公車位置 + ETA
 
-    使用 ebus.gov.taipei 爬蟲取得真實的公車資料
+    懶加載模式：
+    - 首次請求時爬取資料並存入快取
+    - 後續請求從快取讀取（快取有效期1分鐘）
+    - 快取過期後自動重新爬取
 
     參數:
         route: 路線名稱（如：藍15, 235, 307）
         direction: 方向（0=去程, 1=返程），預設為去程
     """
+    global bus_cache_manager
+
     try:
         logger.info(f"API 收到請求: /api/bus/{route}, direction={direction}")
 
-        # 建立新的爬蟲實例並使用 async with 確保資源正確釋放
-        logger.info("正在初始化爬蟲...")
+        # 從快取管理器取得路線資料（懶加載：無快取或過期時會自動爬取）
+        if bus_cache_manager:
+            cached_data = await bus_cache_manager.get_route_data(route, direction)
+
+            if cached_data:
+                logger.info(f"取得路線 {route} 資料成功，快取時間: {cached_data.timestamp}")
+
+                # 嘗試取得另一個方向的資訊（用於顯示起訖站）
+                opposite_direction = 1 if direction == 0 else 0
+                opposite_cached = await bus_cache_manager.get_route_data(route, opposite_direction)
+
+                # 準備方向資訊
+                direction_name_go = cached_data.direction_name_go or "往 終點站"
+                direction_name_back = cached_data.direction_name_back or "往 起點站"
+                current_departure = cached_data.departure_stop or ""
+                current_arrival = cached_data.arrival_stop or ""
+
+                opposite_departure = ""
+                opposite_arrival = ""
+                if opposite_cached:
+                    opposite_departure = opposite_cached.departure_stop or ""
+                    opposite_arrival = opposite_cached.arrival_stop or ""
+                    if not direction_name_go and opposite_cached.direction_name_back:
+                        direction_name_go = opposite_cached.direction_name_back
+                    if not direction_name_back and opposite_cached.direction_name_go:
+                        direction_name_back = opposite_cached.direction_name_go
+
+                direction_info = DirectionInfo(
+                    direction=direction,
+                    direction_name="去程" if direction == 0 else "返程",
+                    departure=current_departure,
+                    arrival=current_arrival,
+                    go=DirectionDetail(
+                        direction=0,
+                        direction_name=direction_name_go,
+                        departure=current_departure if direction == 0 else opposite_departure,
+                        arrival=current_arrival if direction == 0 else opposite_arrival
+                    ),
+                    back=DirectionDetail(
+                        direction=1,
+                        direction_name=direction_name_back,
+                        departure=opposite_departure if direction == 0 else current_departure,
+                        arrival=opposite_arrival if direction == 0 else current_arrival
+                    )
+                )
+
+                # 轉換站點資料
+                stops = [
+                    BusStop(
+                        sequence=s["sequence"],
+                        name=s["name"],
+                        eta=s["eta"],
+                        status=s["status"],
+                        buses=s["buses"]
+                    )
+                    for s in cached_data.stops
+                ]
+
+                # 轉換車輛資料
+                buses = [
+                    BusVehicle(
+                        id=b["id"],
+                        plate_number=b["plate_number"],
+                        bus_type=b["bus_type"],
+                        at_stop=b["at_stop"],
+                        eta_next=b["eta_next"],
+                        heading_to=b["heading_to"],
+                        remaining_seats=b.get("remaining_seats")
+                    )
+                    for b in cached_data.buses
+                ]
+
+                return BusRouteData(
+                    route=route,
+                    route_name=cached_data.route_name or route,
+                    direction=direction_info,
+                    stops=stops if stops else [BusStop(sequence=i, name=f"{route} 第{i+1}站", eta="未發車", status="not_started", buses=[]) for i in range(25)],
+                    buses=buses if buses else [],
+                    updated=cached_data.timestamp.isoformat()
+                )
+
+        # 快取管理器未初始化，直接爬取
+        logger.warning("快取管理器未初始化，直接爬取路線資料...")
         async with TaipeiBusScraper(headless=True) as scraper:
-            logger.info(f"爬蟲初始化完成，正在取得路線 {route} 資訊...")
-
-            # 呼叫爬蟲取得路線資訊（指定方向）
             route_info = await scraper.get_route_info(route, direction=direction)
-            logger.info(f"取得路線資訊成功: {route_info.route_name}, 站數: {len(route_info.stops)}, 方向: {direction}")
 
-            # 嘗試取得另一個方向的資訊（用於顯示起訖站）
-            opposite_direction = 1 if direction == 0 else 0
-            opposite_route_info = None
-            try:
-                opposite_route_info = await scraper.get_route_info(route, direction=opposite_direction)
-                logger.info(f"取得反向路線資訊成功: {opposite_route_info.route_name}, 站數: {len(opposite_route_info.stops)}")
-            except Exception as e:
-                logger.warning(f"取得反向路線資訊失敗: {e}")
-
-            # 轉換站點資料 - 包含序列號、站名、到站時間、車輛資訊
-            stops = []
-            logger.info(f"開始轉換 {len(route_info.stops)} 個站點資料")
-            for i, stop in enumerate(route_info.stops):
-                # 判斷發車狀態
-                if stop.eta is None:
-                    eta_str = "未發車"
-                    status = "not_started"
-                elif stop.eta == 0:
-                    eta_str = "進站中"
-                    status = "arriving"
-                elif stop.eta == 1:
-                    eta_str = "即將進站"
-                    status = "near"
-                else:
-                    eta_str = f"{stop.eta} 分鐘"
-                    status = "normal"
-
-                # 除錯：記錄前幾個站點的站名
-                if i < 3:
-                    logger.info(f"站點 {i}: sequence={stop.sequence}, name='{stop.name}'")
-
-                # 收集該站點的車輛資訊
-                buses_at_stop = []
-                if stop.buses:
-                    for bus in stop.buses:
-                        buses_at_stop.append({
-                            "plate_number": bus.get("plate_number", ""),
-                            "bus_type": bus.get("bus_type", ""),
-                            "remaining_seats": bus.get("remaining_seats")
-                        })
-
-                stops.append(BusStop(
-                    sequence=stop.sequence,
+            # 簡易轉換（略去完整轉換邏輯）
+            stops = [
+                BusStop(
+                    sequence=i,
                     name=stop.name,
-                    eta=eta_str,
-                    status=status,
-                    buses=buses_at_stop
-                ))
-
-            # 轉換車輛資料 - 收集所有在路上的車輛
-            buses = []
-            for stop in route_info.stops:
-                if stop.buses:
-                    for bus in stop.buses:
-                        # 判斷車輛狀態
-                        if stop.eta is None:
-                            vehicle_status = "未發車"
-                        elif stop.eta == 0:
-                            vehicle_status = "進站中"
-                        else:
-                            vehicle_status = f"{stop.eta} 分鐘後到站"
-
-                        buses.append(BusVehicle(
-                            id=bus.get("plate_number", f"{route}-bus"),
-                            plate_number=bus.get("plate_number", ""),
-                            bus_type=bus.get("bus_type", ""),
-                            at_stop=stop.sequence,
-                            eta_next=vehicle_status,
-                            heading_to=stop.sequence + 1 if stop.sequence < len(route_info.stops) else stop.sequence,
-                            remaining_seats=bus.get("remaining_seats")
-                        ))
-
-            # 準備方向資訊
-            # 使用從爬蟲抓取的方向名稱
-            direction_name_go = route_info.direction_name_go or "往 終點站"
-            direction_name_back = route_info.direction_name_back or "往 起點站"
-
-            # 從當前方向和反向資訊中提取起訖站
-            current_departure = route_info.departure_stop or ""
-            current_arrival = route_info.arrival_stop or ""
-
-            # 如果有反向資訊，取得反向的起訖站
-            opposite_departure = ""
-            opposite_arrival = ""
-            if opposite_route_info:
-                opposite_departure = opposite_route_info.departure_stop or ""
-                opposite_arrival = opposite_route_info.arrival_stop or ""
-                # 如果反向有方向名稱，也一併使用
-                if not direction_name_go and opposite_route_info.direction_name_back:
-                    direction_name_go = opposite_route_info.direction_name_back
-                if not direction_name_back and opposite_route_info.direction_name_go:
-                    direction_name_back = opposite_route_info.direction_name_go
+                    eta=f"{stop.eta} 分鐘" if stop.eta else "未發車",
+                    status="normal" if stop.eta else "not_started",
+                    buses=[]
+                )
+                for i, stop in enumerate(route_info.stops)
+            ]
 
             direction_info = DirectionInfo(
                 direction=direction,
                 direction_name="去程" if direction == 0 else "返程",
-                departure=current_departure,
-                arrival=current_arrival,
-                go=DirectionDetail(
-                    direction=0,
-                    direction_name=direction_name_go,
-                    departure=current_departure if direction == 0 else opposite_departure,
-                    arrival=current_arrival if direction == 0 else opposite_arrival
-                ),
-                back=DirectionDetail(
-                    direction=1,
-                    direction_name=direction_name_back,
-                    departure=opposite_departure if direction == 0 else current_departure,
-                    arrival=opposite_arrival if direction == 0 else current_arrival
-                )
+                departure=route_info.departure_stop or "",
+                arrival=route_info.arrival_stop or "",
+                go=DirectionDetail(direction=0, direction_name="往 終點站", departure="", arrival=""),
+                back=DirectionDetail(direction=1, direction_name="往 起點站", departure="", arrival="")
             )
 
-            logger.info(f"API 請求完成，回傳 {len(stops)} 個站點，{len(buses)} 輛車，方向: {direction}")
-            logger.info(f"方向資訊: 去程 {direction_name_go}, 返程 {direction_name_back}")
             return BusRouteData(
                 route=route,
                 route_name=route_info.route_name or route,
                 direction=direction_info,
-                stops=stops if stops else [BusStop(sequence=i, name=f"{route} 第{i+1}站", eta="未發車", status="not_started", buses=[]) for i in range(25)],
-                buses=buses if buses else [],
+                stops=stops,
+                buses=[],
                 updated=datetime.now().isoformat()
             )
 
@@ -1170,9 +1352,68 @@ async def get_bus_route(route: str, direction: int = Query(0, description="方�
         logger.error(f"取得公車路線資料失敗：{e}")
         import traceback
         logger.error(f"詳細錯誤堆疊：{traceback.format_exc()}")
-
-        # 回傳錯誤訊息給前端，不要回退到模擬資料（這樣才能知道真正的問題）
         raise HTTPException(status_code=500, detail=f"無法取得路線資料：{str(e)}")
+
+
+@app.get("/api/bus/cache/status")
+async def get_bus_cache_status():
+    """
+    取得公車快取狀態
+
+    返回快取中路線數量、最後更新時間等資訊
+    """
+    global bus_cache_manager
+
+    if not bus_cache_manager:
+        return {"status": "not_initialized", "message": "快取管理器尚未初始化"}
+
+    status = await bus_cache_manager.get_cache_status()
+    return status
+
+
+@app.post("/api/bus/cache/refresh/{route}")
+async def refresh_bus_route_cache(route: str, direction: int = Query(0, description="方向：0=去程, 1=返程")):
+    """
+    手動重新整理特定路線的快取
+
+    參數:
+        route: 路線名稱（如：藍15, 235, 307）
+        direction: 方向（0=去程, 1=返程），預設為去程
+    """
+    global bus_cache_manager
+
+    if not bus_cache_manager:
+        raise HTTPException(status_code=503, detail="快取管理器尚未初始化")
+
+    try:
+        success = await bus_cache_manager.refresh_route(route, direction)
+        if success:
+            return {"success": True, "message": f"路線 {route} 方向 {direction} 快取已更新"}
+        else:
+            raise HTTPException(status_code=500, detail=f"更新路線 {route} 快取失敗")
+    except Exception as e:
+        logger.error(f"手動更新快取失敗：{e}")
+        raise HTTPException(status_code=500, detail=f"更新快取失敗：{str(e)}")
+
+
+@app.post("/api/bus/cache/clear")
+async def clear_bus_cache():
+    """
+    清空所有公車快取資料
+
+    下次請求時會重新爬取最新資料
+    """
+    global bus_cache_manager
+
+    if not bus_cache_manager:
+        raise HTTPException(status_code=503, detail="快取管理器尚未初始化")
+
+    try:
+        await bus_cache_manager.clear_cache()
+        return {"success": True, "message": "已清空所有公車快取資料"}
+    except Exception as e:
+        logger.error(f"清空快取失敗：{e}")
+        raise HTTPException(status_code=500, detail=f"清空快取失敗：{str(e)}")
 
 
 # ----- 台鐵 API -----
