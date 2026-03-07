@@ -1,0 +1,44 @@
+================================================================================
+Bus Route API Response Speed Test
+================================================================================
+Test routes: 14
+
+[OK] Service running: {'status': 'ok', 'timestamp': '2026-03-06T14:10:16.102736'}
+
+[FAIL] 935 dir 0: Error - 
+[OK] 935 dir 1: first=22807.0ms, cached=21.8ms [CACHED]
+[FAIL] 786 dir 0: Error - 
+[OK] 786 dir 1: first=22786.9ms, cached=6.0ms [CACHED]
+[FAIL] 235 dir 0: Error - 
+[OK] 235 dir 1: first=22785.3ms, cached=4.7ms [CACHED]
+[FAIL] 307 dir 0: Error - 
+[OK] 307 dir 1: first=22806.0ms, cached=5.6ms [CACHED]
+[OK] F623 dir 0: first=23373.4ms, cached=597.5ms [CACHED]
+[FAIL] F623 dir 1: first=1193.0ms, cached=1220.9ms [WARN]
+[FAIL] бе15 dir 0: Error - 
+[OK] бе15 dir 1: first=22766.3ms, cached=4.9ms [CACHED]
+[FAIL] ╨Я1 dir 0: Error - 
+[OK] ╨Я1 dir 1: first=22841.6ms, cached=6.9ms [CACHED]
+
+================================================================================
+Test Statistics
+================================================================================
+Success: 7/14
+Failed: 7/14
+Avg first response: 22880.9ms
+Avg cached response: 92.5ms
+Cache speedup: 247.4x
+Using cache: 7/7
+
+Failed routes:
+  - 935 dir 0: 
+  - 786 dir 0: 
+  - 235 dir 0: 
+  - 307 dir 0: 
+  - F623 dir 1: HTTP 500
+  - бе15 dir 0: 
+  - ╨Я1 dir 0: 
+
+================================================================================
+[WARN] 7 routes failed, please check.
+================================================================================

@@ -117,7 +117,7 @@ class _BusRouteScreenState extends State<BusRouteScreen> with SingleTickerProvid
           Consumer<BusRouteProvider>(
             builder: (context, provider, _) => IconButton(
               icon: const Icon(Icons.refresh),
-              onPressed: provider.isLoading ? null : () => provider.loadData(direction: provider.currentDirection),
+              onPressed: provider.isLoading ? null : () => provider.loadData(direction: provider.currentDirection, forceRefresh: true),
             ),
           ),
         ],
@@ -234,7 +234,7 @@ class _BusRouteScreenState extends State<BusRouteScreen> with SingleTickerProvid
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton.icon(
-                            onPressed: () => provider.loadData(direction: provider.currentDirection),
+                            onPressed: () => provider.loadData(direction: provider.currentDirection, forceRefresh: true),
                             icon: const Icon(Icons.refresh),
                             label: const Text('重新嘗試'),
                           ),
@@ -346,12 +346,15 @@ class _BusRouteScreenState extends State<BusRouteScreen> with SingleTickerProvid
           ),
         ),
 
-        // 站點列表
+        // 站點列表（支持下拉重新整理）
         Expanded(
-          child: ListView.builder(
-            controller: _scrollController,
-            itemCount: data.stops.length,
-            itemBuilder: (context, index) {
+          child: RefreshIndicator(
+            onRefresh: () => provider.loadData(direction: provider.currentDirection, forceRefresh: true),
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              controller: _scrollController,
+              itemCount: data.stops.length,
+              itemBuilder: (context, index) {
               final stop = data.stops[index];
               final stopIndex = index + 1;
               final busesAtStop = _getBusesAtStop(data, stopIndex);
@@ -561,6 +564,7 @@ class _BusRouteScreenState extends State<BusRouteScreen> with SingleTickerProvid
             },
           ),
         ),
+        ),
 
         // 底部資訊列
         Container(
@@ -600,7 +604,7 @@ class _BusRouteScreenState extends State<BusRouteScreen> with SingleTickerProvid
                   ],
                 ),
                 ElevatedButton.icon(
-                  onPressed: () => provider.loadData(direction: provider.currentDirection),
+                  onPressed: () => provider.loadData(direction: provider.currentDirection, forceRefresh: true),
                   icon: const Icon(Icons.refresh, size: 18),
                   label: const Text('重新整理'),
                   style: ElevatedButton.styleFrom(

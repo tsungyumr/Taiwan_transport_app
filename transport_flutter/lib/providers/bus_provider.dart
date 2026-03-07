@@ -5,29 +5,52 @@ import '../services/bus_api_service.dart';
 
 class BusListProvider extends ChangeNotifier {
   List<BusRoute> _routes = [];
+  List<dynamic> _searchResults = []; // 搜尋結果（包含更多欄位）
   String _searchQuery = '';
   bool _isLoading = false;
   String? _error;
+  bool _isSearchMode = false; // 是否為搜尋模式
 
   List<BusRoute> get routes => _routes;
+  List<dynamic> get searchResults => _searchResults;
   String get searchQuery => _searchQuery;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get isSearchMode => _isSearchMode;
 
   Future<void> loadRoutes({String? query}) async {
     _isLoading = true;
     _error = null;
+    _searchQuery = query ?? '';
     notifyListeners();
 
     try {
-      _searchQuery = query ?? '';
-      _routes = await BusApiService.fetchBusRoutes(routeName: _searchQuery.isEmpty ? null : _searchQuery);
+      if (_searchQuery.isEmpty) {
+        // 無搜尋關鍵字，取得所有路線
+        _isSearchMode = false;
+        _routes = await BusApiService.fetchBusRoutes(routeName: null);
+      } else {
+        // 有搜尋關鍵字，使用搜尋 API
+        _isSearchMode = true;
+        _searchResults = await BusApiService.searchBusRoutes(_searchQuery);
+
+        // 同時也取得基本路線列表（相容舊版）
+        _routes = await BusApiService.fetchBusRoutes(routeName: _searchQuery);
+      }
     } catch (e) {
       _error = e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// 清除搜尋
+  void clearSearch() {
+    _searchQuery = '';
+    _searchResults = [];
+    _isSearchMode = false;
+    loadRoutes();
   }
 }
 
@@ -75,8 +98,8 @@ class BusRouteProvider extends ChangeNotifier {
     await loadData(direction: direction);
   }
 
-  Future<void> loadData({int direction = 0}) async {
-    print('【BusRouteProvider】開始載入資料，路線: $route, 方向: $direction');
+  Future<void> loadData({int direction = 0, bool forceRefresh = false}) async {
+    print('【BusRouteProvider】開始載入資料，路線: $route, 方向: $direction, 強制重新整理: $forceRefresh');
     _isLoading = true;
     _error = null;
     _currentDirection = direction;
@@ -84,7 +107,7 @@ class BusRouteProvider extends ChangeNotifier {
 
     try {
       print('【BusRouteProvider】呼叫 API...');
-      _data = await BusApiService.fetchBusRouteData(route, direction: direction);
+      _data = await BusApiService.fetchBusRouteData(route, direction: direction, forceRefresh: forceRefresh);
       _lastUpdated = DateTime.now();
 
       // 儲存到對應的方向資料
