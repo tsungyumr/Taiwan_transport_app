@@ -16,6 +16,7 @@ dependencies:
   provider: ^6.1.1
   json_annotation: ^4.8.1
   shared_preferences: ^2.3.2
+  motion_tab_bar: ^2.0.4
 
 dev_dependencies:
   json_serializable: ^6.7.1

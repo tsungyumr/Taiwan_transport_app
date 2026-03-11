@@ -78,14 +78,14 @@ class ApiService {
         'from_station': fromStation,
         'to_station': toStation,
       };
-      
+
       if (date != null) queryParams['date'] = date;
       if (time != null) queryParams['time'] = time;
-      
+
       final response = await _client.get(
         Uri.parse('$baseUrl/railway/timetable').replace(queryParameters: queryParams),
       );
-      
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => TrainTimeEntry.fromJson(json)).toList();
@@ -120,19 +120,23 @@ class ApiService {
     required String fromStation,
     required String toStation,
     String? date,
+    String? time,
+    String? endTime,
   }) async {
     try {
       final queryParams = <String, String>{
         'from_station': fromStation,
         'to_station': toStation,
       };
-      
+
       if (date != null) queryParams['date'] = date;
-      
+      if (time != null) queryParams['time'] = time;
+      if (endTime != null) queryParams['end_time'] = endTime;
+
       final response = await _client.get(
         Uri.parse('$baseUrl/thsr/timetable').replace(queryParameters: queryParams),
       );
-      
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => THSRTrainEntry.fromJson(json)).toList();

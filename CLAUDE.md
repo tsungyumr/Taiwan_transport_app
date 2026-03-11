@@ -5,9 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 **台灣交通時刻表 App** - A Flutter mobile application for Taiwan transportation timetables including:
-- 大台北公車 (Taipei/New Taipei City buses)
-- 台鐵時刻表 (Taiwan Railways)
-- 高鐵時刻表 (Taiwan High Speed Rail)
+- 大台北公車 (Taipei/New Taipei City buses) - TDX API
+- 台鐵時刻表 (Taiwan Railways) - TDX API
+- 高鐵時刻表 (Taiwan High Speed Rail) - TDX API
+
+All data sources now use TDX (Transport Data Exchange) API with OAuth 2.0 authentication.
 
 ## Technology Stack
 
@@ -22,7 +24,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Backend
 - **Framework**: FastAPI
 - **Language**: Python 3.13
-- **Browser Automation**: Playwright
+- **TDX API**: OAuth 2.0 authentication for Taiwan transport data (TRA & THSR)
+- **Browser Automation**: Playwright (deprecated, kept for fallback)
 - **HTTP Client**: httpx
 - **Database**: SQLite (aiosqlite)
 - **Data Parsing**: BeautifulSoup4, lxml
@@ -32,8 +35,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 Taiwan_transport_app/
 ├── backend/                    # FastAPI backend
-│   ├── main.py              # Main API server with Playwright integration
-│   ├── main_playwright.py   # Playwright-only version
+│   ├── main.py              # Main API server
+│   ├── tdx_auth.py          # TDX OAuth 2.0 authentication
+│   ├── tra_tdx_service.py   # Taiwan Railways TDX API service
+│   ├── thsr_tdx_service.py  # High Speed Rail TDX API service
+│   ├── bus_tdx_service.py   # Bus TDX API service
 │   ├── requirements.txt     # Python dependencies
 │   └── venv/                # Virtual environment
 ├── transport_flutter/         # Flutter app
@@ -89,13 +95,21 @@ flutter test
 
 ## API Endpoints
 
-### Railway (台鐵)
+### Railway (台鐵) - TDX API
+- `GET /api/railway/stations` - List all TRA stations (244 stations)
 - `GET /api/railway/timetable` - Search train timetable
-- Query params: `from_station`, `to_station`, `date`, `time`
+  - Query params: `from_station`, `to_station`, `date`, `time`
 
-### Bus (公車)
-- `GET /api/bus/routes` - List bus routes (mock)
-- `GET /api/bus/{route}` - Get bus route info (mock)
+### High Speed Rail (高鐵) - TDX API
+- `GET /api/thsr/stations` - List all THSR stations (12 stations)
+- `GET /api/thsr/timetable` - Search THSR timetable
+  - Query params: `from_station`, `to_station`, `date`
+
+### Bus (公車) - TDX API (大台北地區)
+- `GET /api/bus/routes` - List bus routes (1044 routes)
+  - Query params: `route_name` (optional filter)
+- `GET /api/bus/timetable/{route_id}` - Get bus timetable
+- `GET /api/bus/realtime/{route_id}` - Get real-time bus arrivals
 
 ### Health
 - `GET /api/health` - Health check
@@ -104,25 +118,28 @@ flutter test
 ## Key Files to Understand
 
 ### Backend
-- `backend/main.py` - Main API server with Playwright integration for TRA scraping
-- `backend/main_playwright.py` - Simplified Playwright-only version
-- `backend/TRA_scraper.py` - Taiwan Railways scraper
-- `backend/analyze_sites.py` - Site analysis utilities
+- `backend/main.py` - Main API server with TDX integration
+- `backend/tdx_auth.py` - TDX OAuth 2.0 authentication module
+- `backend/tra_tdx_service.py` - Taiwan Railways TDX API service
+- `backend/thsr_tdx_service.py` - High Speed Rail TDX API service
+- `backend/bus_tdx_service.py` - Bus TDX API service (Taipei/NewTaipei)
 
 ### Frontend
 - `transport_flutter/lib/main.dart` - App entry point
-- `transport_flutter/lib/screens/home_screen.dart` - Main navigation screen
-- `transport_flutter/lib/models/bus_route.dart` - Bus route data models
-- `transport_flutter/lib/providers/bus_provider.dart` - Bus data provider
-- `transport_flutter/lib/services/bus_api_service.dart` - Bus API service
+- `transport_flutter/lib/screens/railway_screen.dart` - TRA timetable screen
+- `transport_flutter/lib/screens/thsr_screen.dart` - THSR timetable screen
+- `transport_flutter/lib/screens/bus_screen.dart` - Bus routes screen
+- `transport_flutter/lib/models/models.dart` - Data models
+- `transport_flutter/lib/services/api_service.dart` - API service
 
 ## Development Guidelines
 
 1. **Backend-First Development**: Backend APIs should be implemented first, then frontend screens
-2. **Playwright Integration**: Use Playwright for web scraping, especially for TRA and THSR
-3. **Mock Data Strategy**: Use mock data for complex APIs (like TaipeiBusScraper) until real integration
-4. **State Management**: Use Riverpod for state management, Provider for simple cases
-5. **API Design**: Follow RESTful patterns with proper HTTP status codes
+2. **TDX API Integration**: Both TRA and THSR now use TDX API with OAuth 2.0
+3. **Playwright**: Deprecated for TRA/THSR, kept for fallback only
+4. **Mock Data Strategy**: Use mock data for complex APIs (like TaipeiBusScraper) until real integration
+5. **State Management**: Use Riverpod for state management, Provider for simple cases
+6. **API Design**: Follow RESTful patterns with proper HTTP status codes
 
 ## Testing
 
@@ -152,8 +169,39 @@ flutter test
 
 The application follows a client-server architecture:
 - **Client**: Flutter mobile app
-- **Server**: FastAPI backend with Playwright for web scraping
-- **Data Flow**: Mobile → Backend API → Web Scraping → Mobile
+- **Server**: FastAPI backend
+- **Data Sources**:
+  - **台鐵**: TDX API (OAuth 2.0) ✓
+  - **高鐵**: TDX API (OAuth 2.0) ✓
+  - **公車**: TDX API (OAuth 2.0) ✓ - 大台北地區 1044 條路線
+- **Data Flow**: Mobile → Backend API → TDX API → Mobile
 - **State**: Managed locally in Flutter, refreshed via API calls
 
-The backend handles the complexity of web scraping and data parsing, while the frontend focuses on user experience and presentation.
+### TDX API Integration
+
+All transportation data (TRA, THSR, Bus) now use TDX API with OAuth 2.0 authentication:
+
+#### Authentication
+- **Flow**: Client credentials
+- **Token Validity**: 24 hours
+- **Client ID**: `tsungyumr-01112815-ad21-4504`
+
+#### Taiwan Railways (台鐵)
+- **Endpoints**:
+  - `/Rail/TRA/Station` - 244 stations
+  - `/Rail/TRA/TrainType` - 55 train types
+  - `/Rail/TRA/GeneralTimetable` - Train schedules
+- **Station Name Normalization**: "台" → "臺"
+
+#### High Speed Rail (高鐵)
+- **Endpoints**:
+  - `/Rail/THSR/Station` - 12 stations
+  - `/Rail/THSR/GeneralTimetable` - Train schedules
+
+#### Bus (公車) - 大台北地區
+- **Endpoints**:
+  - `/Bus/Route/City/Taipei` - Taipei routes (418)
+  - `/Bus/Route/City/NewTaipei` - New Taipei routes (626)
+  - `/Bus/Stop/City/{City}` - Bus stops
+  - `/Bus/RealTimeByFrequency/City/{City}/{Route}` - Real-time bus locations
+- **Total Routes**: 1044 (Taipei + NewTaipei)

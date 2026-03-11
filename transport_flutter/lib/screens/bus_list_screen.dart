@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../main.dart';
+import '../models/bus_route.dart';
 import '../providers/bus_provider.dart';
-import 'bus_route_screen.dart';
+import '../widgets/animated_card.dart';
+import '../widgets/loading_animations.dart';
+import '../widgets/styled_inputs.dart';
+import '../ui_theme.dart';
+import 'bus_route_page.dart';
 
 class BusListScreen extends StatefulWidget {
   const BusListScreen({super.key});
@@ -26,6 +32,21 @@ class _BusListScreenState extends State<BusListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('新北市公車路線'),
+        backgroundColor: TransportColors.bus,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                TransportColors.bus,
+                TransportColors.bus.withOpacity(0.8),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
         actions: [
           // 清除搜尋按鈕
           Consumer<BusListProvider>(
@@ -47,45 +68,39 @@ class _BusListScreenState extends State<BusListScreen> {
       body: Consumer<BusListProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: PulseLoading(color: TransportColors.bus),
+            );
           }
           if (provider.error != null) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('錯誤：${provider.error}'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => provider.loadRoutes(),
-                    child: const Text('重試'),
-                  ),
-                ],
+              child: EmptyStateCard(
+                icon: Icons.error_outline,
+                title: '載入失敗',
+                subtitle: provider.error,
+                onAction: () => provider.loadRoutes(),
+                actionLabel: '重試',
               ),
             );
           }
           return Column(
             children: [
               // 搜尋欄
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: TextField(
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: SearchTextField(
                   controller: _searchController,
-                  decoration: InputDecoration(
-                    labelText: '搜尋路線（名稱、起迄站）',
-                    hintText: '例如：935、板橋、台北',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              provider.clearSearch();
-                            },
-                          )
-                        : null,
-                    border: const OutlineInputBorder(),
-                  ),
+                  hintText: '搜尋路線（名稱、起迄站）',
                   onChanged: (value) {
                     if (value.isEmpty) {
                       provider.clearSearch();
@@ -93,84 +108,71 @@ class _BusListScreenState extends State<BusListScreen> {
                       provider.loadRoutes(query: value);
                     }
                   },
+                  onClear: () => provider.clearSearch(),
+                  onSearch: () {},
                 ),
               ),
 
               // 結果統計
               if (provider.searchQuery.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      '找到 ${provider.routes.length} 條路線',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.search,
+                        size: 14,
+                        color: AppColors.onSurfaceLight,
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        '找到 ${provider.routes.length} 條路線',
+                        style: AppTextStyles.labelMedium,
+                      ),
+                    ],
                   ),
                 ),
 
               // 路線列表
               Expanded(
                 child: provider.routes.isEmpty
-                    ? const Center(
-                        child: Text('沒有找到路線'),
+                    ? EmptyStateCard(
+                        icon: Icons.search_off,
+                        title: '沒有找到路線',
+                        subtitle: '請嘗試其他關鍵字搜尋',
                       )
                     : RefreshIndicator(
-                        onRefresh: () => provider.loadRoutes(query: provider.searchQuery),
+                        onRefresh: () =>
+                            provider.loadRoutes(query: provider.searchQuery),
+                        color: TransportColors.bus,
                         child: ListView.builder(
                           physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(AppSpacing.md),
                           itemCount: provider.routes.length,
                           itemBuilder: (context, index) {
-                          final route = provider.routes[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 4.0,
-                            ),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                child: Text(
-                                  route.routeName.length > 3
-                                      ? route.routeName.substring(0, 3)
-                                      : route.routeName,
-                                  style: const TextStyle(fontSize: 12),
-                                ),
-                              ),
-                              title: Text(
-                                route.routeName,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('${route.departureStop} → ${route.arrivalStop}'),
-                                  if (route.operator.isNotEmpty)
-                                    Text(
-                                      route.operator,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              isThreeLine: route.operator.isNotEmpty,
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (ctx) => ChangeNotifierProvider(
-                                    create: (_) => BusRouteProvider(route.routeId)
-                                      ..startPolling(),
-                                    child: BusRouteScreen(route: route.routeId),
+                            final route = provider.routes[index];
+                            return FadeInAnimation(
+                              delay: Duration(milliseconds: index * 30),
+                              child: BusRouteCard(
+                                routeName: route.routeName,
+                                fromStop: route.departureStop,
+                                toStop: route.arrivalStop,
+                                operator: route.operator,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  SlidePageRoute(
+                                    builder: (ctx) => BusRoutePage(
+                                        route: route.routeId),
                                   ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
-                    ),
               ),
             ],
           );

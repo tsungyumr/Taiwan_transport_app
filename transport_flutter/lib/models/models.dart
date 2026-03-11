@@ -51,11 +51,17 @@ class TrainStation {
   final String stationCode;
   final String stationName;
   final String stationNameEn;
+  final double? latitude;
+  final double? longitude;
+  final String? city;
 
   TrainStation({
     required this.stationCode,
     required this.stationName,
     required this.stationNameEn,
+    this.latitude,
+    this.longitude,
+    this.city,
   });
 
   factory TrainStation.fromJson(Map<String, dynamic> json) {
@@ -63,7 +69,18 @@ class TrainStation {
       stationCode: json['station_code'] ?? json['code'] ?? '',
       stationName: json['station_name'] ?? json['name'] ?? '',
       stationNameEn: json['station_name_en'] ?? json['name'] ?? '',
+      latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
+      longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
+      city: json['city'] as String?,
     );
+  }
+
+  // 取得座標顯示文字
+  String get coordinatesText {
+    if (latitude != null && longitude != null) {
+      return '(${latitude!.toStringAsFixed(4)}, ${longitude!.toStringAsFixed(4)})';
+    }
+    return '';
   }
 }
 

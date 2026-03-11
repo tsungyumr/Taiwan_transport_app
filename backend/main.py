@@ -1,11 +1,11 @@
 """
-台灣交通時刻表爬蟲 API - 整合 Playwright 版本
-Taiwan Transport Timetable Scraper API with Playwright
+台灣交通時刻表 API - TDX 版本
+Taiwan Transport Timetable API with TDX
 
 Target Sources:
-1. 高鐵時刻表: https://www.thsrc.com.tw (使用 Playwright)
-2. 台鐵時刻表: https://www.railway.gov.tw/tra-tip-web (使用 Playwright)
-3. 公車: ebus.gov.taipei (使用 mock data)
+1. 高鐵時刻表: TDX API (OAuth 2.0)
+2. 台鐵時刻表: TDX API (OAuth 2.0)
+3. 公車: TDX API (大台北地區)
 """
 
 import asyncio
@@ -19,6 +19,9 @@ from datetime import datetime, date
 from playwright.async_api import async_playwright, Browser, Page
 from THSR_scraper import scrape_thsr_stations
 from scrapers.taipei_bus_scraper import TaipeiBusScraper
+from tra_tdx_service import get_tra_service
+from thsr_tdx_service import get_thsr_service
+from bus_tdx_service import get_bus_service
 # 快取管理器會在 lifespan 中初始化
 import os
 import random
@@ -411,6 +414,8 @@ class TrainStation(BaseModel):
     station_code: str
     station_name: str
     station_name_en: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class TrainTimeEntry(BaseModel):
@@ -452,6 +457,22 @@ class BusStop(BaseModel):
     eta: str  # 預估到站時間文字（如："5 分鐘"、"進站中"、"未發車"）
     status: str = ""  # 狀態代碼：not_started, arriving, near, normal
     buses: List[Dict] = []  # 在該站的公車資訊列表
+    latitude: Optional[float] = None  # 緯度
+    longitude: Optional[float] = None  # 經度
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "sequence": 1,
+                "name": "瑞芳火車站",
+                "eta": "3 分鐘",
+                "status": "normal",
+                "buses": [],
+                "latitude": 25.07553,
+                "longitude": 121.66547
+            }
+        }
+    }
 
 
 class BusVehicle(BaseModel):
@@ -1174,29 +1195,6 @@ async def health_check() -> Dict[str, str]:
     """健康檢查端點"""
     return {"status": "ok", "timestamp": datetime.now().isoformat()}
 
-@app.get("/api/thsr/stations", response_model=List[THSRStation])
-async def get_thsr_stations() -> List[THSRStation]:
-    """
-    取得高鐵站點列表
-
-    Returns:
-        List[THSRStation]: 高鐵站點列表
-    """
-    # 檢查快取
-    cached_stations = await thsr_stations_cache.get()
-    if cached_stations:
-        return [THSRStation(**station) for station in cached_stations]
-
-    # 爬取新資料
-    stations = await scrape_thsr_stations()
-
-    if stations:
-        # 更新快取
-        await thsr_stations_cache.set(stations)
-        return [THSRStation(**station) for station in stations]
-    else:
-        raise HTTPException(status_code=500, detail="無法取得高鐵站點資料")
-
 @app.get("/")
 async def root():
     return {
@@ -1206,78 +1204,45 @@ async def root():
     }
 
 
-# ----- 公車 API -----
+# ----- 公車 API (使用 TDX) -----
 
 @app.get("/api/bus/routes", response_model=List[BusRoute])
 async def get_bus_routes(route_name: str = Query(None, description="路線名稱關鍵字")):
     """
-    取得公車路線列表
+    取得公車路線列表 (使用 TDX API)
 
-    優先使用新北市 CSV 資料，若無資料則回退到爬蟲。
-    結果會被快取 10 分鐘。
+    資料來自台北市和新北市 TDX API，包含大台北地區公車路線。
     """
-    global bus_cache_manager, _ntpc_bus_service
-
-    # 產生快取鍵
-    cache_key = f"routes:{route_name or 'all'}"
-
-    # 嘗試從快取取得
-    cache = get_route_cache()
-    cached_result = await cache.get(cache_key)
-    if cached_result is not None:
-        logger.debug(f"路線列表快取命中: {cache_key}")
-        return cached_result
-
     try:
-        # 優先使用新北市 CSV 資料服務
-        if _ntpc_bus_service and _ntpc_bus_service._routes:
-            if route_name:
-                routes = _ntpc_bus_service.search_routes(route_name)
-            else:
-                routes = _ntpc_bus_service.get_all_routes()
-
-            # 轉換為 API 格式
-            result = []
-            for route in routes:
-                result.append(BusRoute(
-                    route_id=route.route_id,
-                    route_name=route.name_zh,
-                    departure_stop=route.departure_zh,
-                    arrival_stop=route.destination_zh,
-                    operator=route.provider_name
-                ))
-
-            # 存入快取（10 分鐘 TTL）
-            await cache.set(cache_key, result, ttl_seconds=600)
-            return result
-
-    except Exception as e:
-        logger.warning(f"CSV 資料服務失敗，回退到爬蟲：{e}")
-
-    # 回退到舊的爬蟲邏輯
-    try:
-        if bus_cache_manager:
-            routes = await bus_cache_manager.get_all_routes()
-        else:
-            async with TaipeiBusScraper(headless=True) as scraper:
-                routes = await scraper.get_all_routes()
+        bus_service = get_bus_service()
 
         if route_name:
-            routes = [r for r in routes if route_name.lower() in r.route_name.lower()]
+            routes = await bus_service.search_routes(route_name)
+        else:
+            routes = await bus_service.get_all_taipei_routes()
 
+        # 轉換為 API 格式
         result = []
         for route in routes:
-            parts = route.description.split("-") if "-" in route.description else ["", ""]
+            route_id = route.get("RouteUID", "")
+            route_name_zh = route.get("RouteName", {}).get("Zh_tw", "")
+            # TDX API 使用 DepartureStopNameZh 和 DestinationStopNameZh
+            departure = route.get("DepartureStopNameZh", "") or route.get("DepartureStopName", "")
+            destination = route.get("DestinationStopNameZh", "") or route.get("DestinationStopName", "")
+            operators = route.get("Operators", [])
+            operator_name = ""
+            if operators:
+                op_name_obj = operators[0].get("OperatorName", {})
+                operator_name = op_name_obj.get("Zh_tw", "") if isinstance(op_name_obj, dict) else op_name_obj
+
             result.append(BusRoute(
-                route_id=route.route_id,
-                route_name=route.route_name,
-                departure_stop=parts[0].strip(),
-                arrival_stop=parts[-1].strip() if len(parts) > 1 else "",
-                operator=""
+                route_id=route_id,
+                route_name=route_name_zh,
+                departure_stop=departure,
+                arrival_stop=destination,
+                operator=operator_name
             ))
 
-        # 存入快取
-        await cache.set(cache_key, result, ttl_seconds=600)
         return result
 
     except Exception as e:
@@ -1417,25 +1382,25 @@ async def get_bus_realtime(route_id: str, stop_name: str = Query(None, descripti
         )
 
 
-@app.get("/api/bus/{route}", response_model=BusRouteData)
+@app.get("/api/bus/{route}", response_model=BusRouteData, response_model_exclude_none=False)
 async def get_bus_route(
     route: str,
     direction: int = Query(0, description="方向：0=去程, 1=返程"),
     _t: Optional[int] = Query(None, description="時間戳參數，用於強制重新整理繞過快取")
 ):
     """
-    公車路線即時資料 - 站點列表 + 多輛公車位置 + ETA
+    公車路線即時資料 - 站點列表 + 多輛公車位置 + ETA (使用 TDX API)
 
-    優先使用新北市 CSV 資料，若無資料則回退到爬蟲。
+    資料來源：TDX API (台北市 + 新北市)
     結果快取 30 秒以提高效能。
     傳入 _t 參數可繞過快取強制重新整理。
 
     參數:
-        route: 路線名稱（如：935, F623）
+        route: 路線名稱（如：935, 藍36, 232）
         direction: 方向（0=去程, 1=返程），預設為去程
         _t: 時間戳參數，用於強制重新整理
     """
-    global bus_cache_manager, _ntpc_bus_service, _estimation_cache
+    global _estimation_cache
 
     logger.info(f"API 收到請求: /api/bus/{route}, direction={direction}, _t={_t}")
 
@@ -1453,118 +1418,214 @@ async def get_bus_route(
                 logger.info(f"路線資料快取命中: {cache_key}")
                 return cached_result
 
-    # 優先使用新北市 CSV 資料服務
-    if _ntpc_bus_service:
+    try:
+        bus_service = get_bus_service()
+
+        # 先搜尋路線找到所屬縣市
+        all_routes = await bus_service.get_all_taipei_routes()
+        route_info = None
+        city = "Taipei"
+
+        for r in all_routes:
+            route_name = r.get("RouteName", {}).get("Zh_tw", "")
+            if route_name == route:
+                route_info = r
+                city = r.get("City", "Taipei")
+                break
+
+        if not route_info:
+            logger.error(f"找不到路線 {route}")
+            raise HTTPException(status_code=404, detail=f"找不到路線 {route}")
+
+        # 取得路線站點資料
+        route_stops_data = await bus_service.get_route_stops(route, city, direction)
+
+        if not route_stops_data:
+            logger.error(f"路線 {route} 沒有站點資料")
+            raise HTTPException(status_code=404, detail=f"路線 {route} 沒有站點資料")
+
+        # 取得預估到站時間資料（可選，失敗不影響基本功能）
+        eta_data = []
         try:
-            # 先嘗試用 route_id 查詢
-            route_info = _ntpc_bus_service.get_route(route)
-
-            # 如果找不到，嘗試用 name_zh（路線名稱）搜尋
-            if not route_info:
-                logger.info(f"用 route_id 找不到 {route}，嘗試用路線名稱搜尋...")
-                matching_routes = _ntpc_bus_service.search_routes(route)
-                # 找出 name_zh 完全匹配的
-                for r in matching_routes:
-                    if r.name_zh == route:
-                        route_info = r
-                        logger.info(f"找到路線名稱匹配: {route} -> route_id: {route_info.route_id}")
-                        break
-                # 如果還是找不到，使用第一個部分匹配的
-                if not route_info and matching_routes:
-                    route_info = matching_routes[0]
-                    logger.info(f"使用部分匹配: {route} -> route_id: {route_info.route_id}")
-            if route_info:
-                stops_with_eta = _ntpc_bus_service.get_route_stops_with_eta(route_info.route_id, direction)
-
-                # 即使沒有站牌資料，也回傳路線基本資訊
-                if not stops_with_eta:
-                    logger.warning(f"路線 {route} 方向 {direction} 沒有站牌資料，嘗試另一個方向")
-                    opposite_direction = 1 if direction == 0 else 0
-                    stops_with_eta = _ntpc_bus_service.get_route_stops_with_eta(route_info.route_id, opposite_direction)
-
-                if stops_with_eta:
-                    # 轉換站牌資料
-                    stops = []
-                    for i, stop in enumerate(stops_with_eta):
-                        stops.append(BusStop(
-                            sequence=stop.sequence,
-                            name=stop.name_zh,
-                            eta=stop.estimate_text,
-                            status=stop.status,
-                            buses=[]
-                        ))
-
-                    # 建立方向資訊
-                    opposite_direction = 1 if direction == 0 else 0
-                    direction_info = DirectionInfo(
-                        direction=direction,
-                        direction_name="去程" if direction == 0 else "返程",
-                        departure=route_info.departure_zh if direction == 0 else route_info.destination_zh,
-                        arrival=route_info.destination_zh if direction == 0 else route_info.departure_zh,
-                        go=DirectionDetail(
-                            direction=0,
-                            direction_name=f"往 {route_info.destination_zh}",
-                            departure=route_info.departure_zh,
-                            arrival=route_info.destination_zh
-                        ),
-                        back=DirectionDetail(
-                            direction=1,
-                            direction_name=f"往 {route_info.departure_zh}",
-                            departure=route_info.destination_zh,
-                            arrival=route_info.departure_zh
-                        )
-                    )
-
-                    # 建立模擬車輛資料（CSV 沒有車輛位置）
-                    buses = []
-                    for stop in stops_with_eta:
-                        if stop.status in ['arriving', 'near']:
-                            buses.append(BusVehicle(
-                                id=f"bus-{stop.sequence}",
-                                plate_number="",
-                                bus_type="一般公車",
-                                at_stop=stop.sequence,
-                                eta_next=stop.estimate_text,
-                                heading_to=min(stop.sequence + 1, len(stops_with_eta) - 1)
-                            ))
-
-                    # 如果沒有接近的車輛，建立一些模擬車輛
-                    if not buses:
-                        for j in range(1, 4):
-                            position = min(j * (len(stops) // 3), len(stops) - 1)
-                            buses.append(BusVehicle(
-                                id=f"{route}-bus-{j}",
-                                plate_number="",
-                                bus_type="一般公車",
-                                at_stop=position,
-                                eta_next=f"{j * 5}分後到達",
-                                heading_to=min(position + 1, len(stops) - 1)
-                            ))
-
-                    result = BusRouteData(
-                        route=route,
-                        route_name=route_info.name_zh,
-                        direction=direction_info,
-                        stops=stops,
-                        buses=buses,
-                        updated=datetime.now().isoformat()
-                    )
-
-                    # 存入快取（30 秒 TTL）
-                    if _estimation_cache:
-                        await _estimation_cache.set(cache_key, result, ttl_seconds=30)
-
-                    logger.info(f"CSV 資料: 路線 {route} 有 {len(stops)} 個站牌")
-                    return result
-
+            eta_data = await bus_service.get_estimated_time_of_arrival(route, city, direction)
         except Exception as e:
-            logger.error(f"CSV 資料服務處理失敗：{e}")
-            import traceback
-            logger.error(f"詳細錯誤堆疊：{traceback.format_exc()}")
+            logger.warning(f"無法取得路線 {route} 的預估到站時間: {e}")
+            # ETA 失敗不影響基本路線資訊回傳
 
-    # CSV 資料服務不可用或處理失敗，返回錯誤
-    logger.error(f"無法從 CSV 資料服務取得路線 {route} 的資料")
-    raise HTTPException(status_code=404, detail=f"找不到路線 {route} 的資料，請確認路線名稱正確")
+        # 建立站點 ETA 對照表
+        eta_map = {}
+        for eta in eta_data:
+            stop_uid = eta.get("StopUID", "")
+            estimate_time = eta.get("EstimateTime")
+            stop_status = eta.get("StopStatus", 0)
+
+            # 轉換時間為文字
+            eta_text = "未發車"
+            status = "normal"
+            if stop_status == 1:
+                eta_text = "未發車"
+                status = "not_started"
+            elif stop_status == 2:
+                eta_text = "進站中"
+                status = "arriving"
+            elif stop_status == 3:
+                eta_text = "已過站"
+                status = "passed"
+            elif estimate_time is not None:
+                minutes = estimate_time // 60
+                if minutes < 1:
+                    eta_text = "即將進站"
+                    status = "arriving"
+                elif minutes < 3:
+                    eta_text = f"{minutes}分鐘"
+                    status = "near"
+                else:
+                    eta_text = f"{minutes}分鐘"
+
+            eta_map[stop_uid] = {"text": eta_text, "status": status}
+
+        # 處理站點資料
+        stops = []
+        buses = []
+        seen_stop_uids = set()  # 用於去重（以 StopUID）
+        seen_sequences = set()  # 用於去重（以 StopSequence）
+
+        # 收集所有站點 UID 用於批量查詢經緯度
+        all_stop_uids = []
+        for route_stop in route_stops_data:
+            route_stop_direction = route_stop.get("Direction", 0)
+            if route_stop_direction != direction:
+                continue
+            stops_list = route_stop.get("Stops", [])
+            for stop in stops_list:
+                stop_uid = stop.get("StopUID", "")
+                if stop_uid:
+                    all_stop_uids.append(stop_uid)
+
+        # 批量取得站點經緯度
+        stop_positions = {}
+        try:
+            stop_positions = await bus_service.get_stop_positions_batch(all_stop_uids)
+            logger.info(f"成功取得 {len(stop_positions)} 個站點的經緯度資料")
+        except Exception as e:
+            logger.warning(f"取得站點經緯度資料失敗: {e}")
+
+        for route_stop in route_stops_data:
+            # 檢查方向是否匹配（避免重複加入其他方向的站點）
+            route_stop_direction = route_stop.get("Direction", 0)
+            if route_stop_direction != direction:
+                continue
+
+            stops_list = route_stop.get("Stops", [])
+            for stop in stops_list:
+                stop_uid = stop.get("StopUID", "")
+                stop_name = stop.get("StopName", {}).get("Zh_tw", "")
+                stop_sequence = stop.get("StopSequence", 0)
+
+                # 檢查是否已經加入過此站點（避免重複）
+                # 以 StopUID 或 StopSequence 去重
+                if stop_uid and stop_uid in seen_stop_uids:
+                    continue
+                if stop_sequence in seen_sequences:
+                    continue
+
+                if stop_uid:
+                    seen_stop_uids.add(stop_uid)
+                seen_sequences.add(stop_sequence)
+
+                # 取得 ETA 資訊
+                eta_info = eta_map.get(stop_uid, {"text": "未發車", "status": "not_started"})
+
+                # 取得站點經緯度
+                position = stop_positions.get(stop_uid, {})
+                latitude = position.get("latitude")
+                longitude = position.get("longitude")
+
+                stops.append(BusStop(
+                    sequence=stop_sequence,
+                    name=stop_name,
+                    eta=eta_info["text"],
+                    status=eta_info["status"],
+                    buses=[],
+                    latitude=latitude,
+                    longitude=longitude
+                ))
+
+                # 如果即將進站或接近，建立車輛資訊
+                if eta_info["status"] in ["arriving", "near"]:
+                    buses.append(BusVehicle(
+                        id=f"bus-{stop_sequence}",
+                        plate_number="",
+                        bus_type="一般公車",
+                        at_stop=stop_sequence,
+                        eta_next=eta_info["text"],
+                        heading_to=min(stop_sequence + 1, len(stops_list))
+                    ))
+
+        # 排序站點
+        stops.sort(key=lambda x: x.sequence)
+
+        # 取得路線起訖站資訊
+        departure = route_info.get("DepartureStopNameZh", "") or route_info.get("DepartureStopName", "")
+        destination = route_info.get("DestinationStopNameZh", "") or route_info.get("DestinationStopName", "")
+
+        # 建立方向資訊
+        direction_info = DirectionInfo(
+            direction=direction,
+            direction_name="去程" if direction == 0 else "返程",
+            departure=departure if direction == 0 else destination,
+            arrival=destination if direction == 0 else departure,
+            go=DirectionDetail(
+                direction=0,
+                direction_name=f"往 {destination}",
+                departure=departure,
+                arrival=destination
+            ),
+            back=DirectionDetail(
+                direction=1,
+                direction_name=f"往 {departure}",
+                departure=destination,
+                arrival=departure
+            )
+        )
+
+        # 如果沒有接近的車輛，建立一些模擬車輛
+        if not buses and stops:
+            for j in range(1, 4):
+                position = min(j * (len(stops) // 3), len(stops) - 1)
+                if position < len(stops):
+                    buses.append(BusVehicle(
+                        id=f"{route}-bus-{j}",
+                        plate_number="",
+                        bus_type="一般公車",
+                        at_stop=position,
+                        eta_next=f"{j * 5}分後到達",
+                        heading_to=min(position + 1, len(stops) - 1)
+                    ))
+
+        result = BusRouteData(
+            route=route,
+            route_name=route,
+            direction=direction_info,
+            stops=stops,
+            buses=buses,
+            updated=datetime.now().isoformat()
+        )
+
+        # 存入快取（30 秒 TTL）
+        if _estimation_cache:
+            await _estimation_cache.set(cache_key, result, ttl_seconds=30)
+
+        logger.info(f"TDX API: 路線 {route} 有 {len(stops)} 個站牌, {len(buses)} 輛車")
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"取得路線 {route} 資料失敗：{e}")
+        import traceback
+        logger.error(f"詳細錯誤堆疊：{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"取得路線資料失敗：{str(e)}")
 
 
 @app.get("/api/bus/cache/status")
@@ -1628,19 +1689,50 @@ async def clear_bus_cache():
         raise HTTPException(status_code=500, detail=f"清空快取失敗：{str(e)}")
 
 
-# ----- 台鐵 API -----
+# ----- 台鐵 API (使用 TDX) -----
 
-@app.get("/api/railway/stations", response_model=List[TrainStation])
+@app.get("/api/railway/stations")
 async def get_railway_stations():
-    """取得台鐵車站列表"""
-    stations = []
-    for code, name in TaiwanRailwayScraper.STATIONS.items():
-        stations.append(TrainStation(
-            station_code=code,
-            station_name=name,
-            station_name_en=name
-        ))
-    return stations
+    """取得台鐵車站列表 (使用 TDX API)，包含經緯度座標和縣市資訊"""
+    try:
+        tra_service = get_tra_service()
+        # 使用新的方法取得包含經緯度的站點資料
+        stations_with_pos = await tra_service.get_stations_with_positions()
+
+        stations = []
+        for station in stations_with_pos:
+            station_id = station.get("StationID", "")
+            station_name = station.get("StationName", {}).get("Zh_tw", "")
+            station_name_en = station.get("StationName", {}).get("En", "")
+            latitude = station.get("latitude")
+            longitude = station.get("longitude")
+            city = station.get("LocationCity", "")
+
+            if station_id and station_name:
+                stations.append({
+                    "station_code": station_id,
+                    "station_name": station_name,
+                    "station_name_en": station_name_en,
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "city": city,
+                })
+
+        return stations
+    except Exception as e:
+        logger.error(f"取得台鐵站點列表失敗: {e}")
+        # 如果 TDX API 失敗，回傳靜態站點列表作為備援（無經緯度）
+        stations = []
+        for code, name in TaiwanRailwayScraper.STATIONS.items():
+            stations.append({
+                "station_code": code,
+                "station_name": name,
+                "station_name_en": name,
+                "latitude": None,
+                "longitude": None,
+                "city": "",
+            })
+        return stations
 
 
 @app.get("/api/railway/timetable", response_model=List[TrainTimeEntry])
@@ -1650,29 +1742,147 @@ async def get_railway_timetable(
     date: str = Query(None, description="日期 YYYY/MM/DD"),
     time: str = Query(None, description="時間 HH:MM")
 ):
-    """查詢台鐵時刻表"""
-    return await railway_scraper.search_timetable(from_station, to_station, date, time)
+    """查詢台鐵時刻表 (使用 TDX API)"""
+    try:
+        tra_service = get_tra_service()
+
+        # 將站點代碼轉換為站名（如果是數字代碼）
+        from_name = from_station
+        to_name = to_station
+
+        # 如果是數字代碼，嘗試轉換為站名
+        if from_station.isdigit():
+            station = await tra_service.get_station_by_id(from_station)
+            if station:
+                from_name = station.get("StationName", {}).get("Zh_tw", from_station)
+
+        if to_station.isdigit():
+            station = await tra_service.get_station_by_id(to_station)
+            if station:
+                to_name = station.get("StationName", {}).get("Zh_tw", to_station)
+
+        # 搜尋時刻表
+        trains = await tra_service.search_timetable(from_name, to_name, date)
+
+        # 轉換為 API 回傳格式
+        results = []
+        for train in trains:
+            # 將分鐘數轉換為 HH:MM 格式
+            duration_minutes = train.get("duration")
+            duration_str = None
+            if duration_minutes:
+                hours = duration_minutes // 60
+                mins = duration_minutes % 60
+                duration_str = f"{hours}:{mins:02d}"
+
+            results.append(TrainTimeEntry(
+                train_no=train.get("train_no", ""),
+                train_type=train.get("train_type", ""),
+                departure_station=train.get("from_station", ""),
+                arrival_station=train.get("to_station", ""),
+                departure_time=train.get("departure_time", ""),
+                arrival_time=train.get("arrival_time", ""),
+                duration=duration_str,
+                transferable=True
+            ))
+
+        return results
+
+    except Exception as e:
+        logger.error(f"查詢台鐵時刻表失敗: {e}")
+        # 如果 TDX API 失敗，使用舊的 Playwright 爬蟲作為備援
+        return await railway_scraper.search_timetable(from_station, to_station, date, time)
 
 
-# ----- 高鐵 API -----
+# ----- 高鐵 API (使用 TDX) -----
 
 @app.get("/api/thsr/stations")
 async def get_thsr_stations():
-    """取得高鐵車站列表"""
-    stations = []
-    for code, name in THSRScraper.STATIONS.items():
-        stations.append({"code": code, "name": name})
-    return stations
+    """取得高鐵車站列表 (使用 TDX API)"""
+    try:
+        thsr_service = get_thsr_service()
+        tdx_stations = await thsr_service.get_stations()
+
+        stations = []
+        for station in tdx_stations:
+            station_id = station.get("StationID", "")
+            station_name = station.get("StationName", {}).get("Zh_tw", "")
+            station_name_en = station.get("StationName", {}).get("En", "")
+
+            if station_id and station_name:
+                stations.append({
+                    "code": station_id,
+                    "name": station_name,
+                    "name_en": station_name_en
+                })
+
+        return stations
+    except Exception as e:
+        logger.error(f"取得高鐵站點列表失敗: {e}")
+        # 如果 TDX API 失敗，回傳靜態站點列表作為備援
+        stations = []
+        for code, name in THSRScraper.STATIONS.items():
+            stations.append({"code": code, "name": name})
+        return stations
 
 
 @app.get("/api/thsr/timetable", response_model=List[THSRTrainEntry])
 async def get_thsr_timetable(
-    from_station: str = Query(..., description="出發站代碼"),
-    to_station: str = Query(..., description="抵達站代碼"),
+    from_station: str = Query(..., description="出發站代碼或名稱"),
+    to_station: str = Query(..., description="抵達站代碼或名稱"),
     date: str = Query(None, description="日期 YYYY-MM-DD")
 ):
-    """查詢高鐵時刻表"""
-    return await thsr_scraper.search_timetable(from_station, to_station, date)
+    """查詢高鐵時刻表 (使用 TDX API)"""
+    try:
+        thsr_service = get_thsr_service()
+
+        # 將站點代碼轉換為站名（如果是數字代碼）
+        from_name = from_station
+        to_name = to_station
+
+        # 如果是數字代碼，嘗試轉換為站名
+        if from_station.isdigit():
+            station = await thsr_service.get_station_by_id(from_station)
+            if station:
+                from_name = station.get("StationName", {}).get("Zh_tw", from_station)
+
+        if to_station.isdigit():
+            station = await thsr_service.get_station_by_id(to_station)
+            if station:
+                to_name = station.get("StationName", {}).get("Zh_tw", to_station)
+
+        # 搜尋時刻表
+        trains = await thsr_service.search_timetable(from_name, to_name, date)
+
+        # 轉換為 API 回傳格式
+        results = []
+        for train in trains:
+            # 將分鐘數轉換為 HH:MM 格式
+            duration_minutes = train.get("duration")
+            duration_str = None
+            if duration_minutes:
+                hours = duration_minutes // 60
+                mins = duration_minutes % 60
+                duration_str = f"{hours}:{mins:02d}"
+
+            results.append(THSRTrainEntry(
+                train_no=train.get("train_no", ""),
+                departure_station=train.get("from_station", ""),
+                arrival_station=train.get("to_station", ""),
+                departure_time=train.get("departure_time", ""),
+                arrival_time=train.get("arrival_time", ""),
+                duration=duration_str,
+                business_seat_available=True,
+                standard_seat_available=True,
+                free_seat_available=True
+            ))
+
+        return results
+
+    except Exception as e:
+        logger.error(f"查詢高鐵時刻表失敗: {e}")
+        # 如果 TDX API 失敗，使用舊的 Playwright 爬蟲作為備援
+        return await thsr_scraper.search_timetable(from_station, to_station, date)
 
 
 # ----- 測試用端點 -----

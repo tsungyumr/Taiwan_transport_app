@@ -139,6 +139,10 @@ class BusStop {
   final String status; // 狀態代碼（not_started/arriving/near/normal）
   @JsonKey(defaultValue: [])
   final List<StopBusInfo> buses; // 在該站點的車輛列表
+  @JsonKey(defaultValue: null)
+  final double? latitude; // 緯度
+  @JsonKey(defaultValue: null)
+  final double? longitude; // 經度
 
   BusStop({
     this.sequence = 0,
@@ -146,6 +150,8 @@ class BusStop {
     this.eta = '',
     this.status = 'normal',
     this.buses = const [],
+    this.latitude,
+    this.longitude,
   });
 
   factory BusStop.fromJson(Map<String, dynamic> json) => _$BusStopFromJson(json);

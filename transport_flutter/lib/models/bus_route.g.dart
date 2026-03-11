@@ -87,6 +87,8 @@ BusStop _$BusStopFromJson(Map<String, dynamic> json) => BusStop(
               ?.map((e) => StopBusInfo.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
 
 Map<String, dynamic> _$BusStopToJson(BusStop instance) => <String, dynamic>{
@@ -95,6 +97,8 @@ Map<String, dynamic> _$BusStopToJson(BusStop instance) => <String, dynamic>{
       'eta': instance.eta,
       'status': instance.status,
       'buses': instance.buses,
+      'latitude': instance.latitude,
+      'longitude': instance.longitude,
     };
 
 BusVehicle _$BusVehicleFromJson(Map<String, dynamic> json) => BusVehicle(

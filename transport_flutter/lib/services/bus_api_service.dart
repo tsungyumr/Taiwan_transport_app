@@ -107,17 +107,30 @@ class BusApiService {
         print('【BusApiService】站數: ${data['stops']?.length ?? 0}');
         print('【BusApiService】車輛數: ${data['buses']?.length ?? 0}');
 
-        // 除錯：印出前幾個站點的詳細資訊
+        // 除錯：印出第一個站點的原始 JSON
+        if (data['stops'] != null && data['stops'] is List && data['stops'].isNotEmpty) {
+          final firstStop = data['stops'][0];
+          print('【BusApiService】第一個站點原始 JSON: $firstStop');
+        }
         if (data['stops'] != null && data['stops'] is List) {
           final stops = data['stops'] as List;
           print('【BusApiService】前3個站點資料:');
           for (int i = 0; i < stops.length && i < 3; i++) {
             final stop = stops[i];
-            print('  站點 $i: name=${stop['name']}, sequence=${stop['sequence']}, eta=${stop['eta']}');
+            print('  站點 $i: name=${stop['name']}, sequence=${stop['sequence']}, eta=${stop['eta']}, lat=${stop['latitude']}, lon=${stop['longitude']}');
           }
         }
 
-        return BusRouteData.fromJson(data);
+        final result = BusRouteData.fromJson(data);
+
+        // 除錯：檢查解析後的資料
+        print('【BusApiService】解析後的站點數: ${result.stops.length}');
+        for (int i = 0; i < result.stops.length && i < 3; i++) {
+          final stop = result.stops[i];
+          print('  站點 $i: ${stop.name}, lat=${stop.latitude}, lon=${stop.longitude}');
+        }
+
+        return result;
       } else {
         print('【BusApiService】❌ 請求失敗！');
         print('【BusApiService】狀態碼: ${response.statusCode}');
