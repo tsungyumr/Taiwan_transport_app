@@ -22,6 +22,8 @@ from scrapers.taipei_bus_scraper import TaipeiBusScraper
 from tra_tdx_service import get_tra_service
 from thsr_tdx_service import get_thsr_service
 from bus_tdx_service import get_bus_service
+from bike_tdx_service import get_bike_service, SUPPORTED_CITIES
+from bike_cache_manager import get_bike_cache_manager
 # 快取管理器會在 lifespan 中初始化
 import os
 import random
@@ -134,6 +136,9 @@ _browser: Browser = None
 # 公車快取管理器實例
 bus_cache_manager = None
 
+# UBike 快取管理器實例
+bike_cache_manager = None
+
 # 新北市 CSV 資料服務實例
 _ntpc_bus_service = None
 
@@ -211,6 +216,7 @@ async def _cleanup_cache():
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
     global _pw, _browser, bus_cache_manager, _ntpc_bus_service, _route_cache, _estimation_cache
+    global bike_cache_manager
 
     # Startup: init Playwright
     _pw = await async_playwright().start()
@@ -225,6 +231,15 @@ async def lifespan(app: FastAPI):
     bus_cache_manager = TaipeiBusCacheManager()  # 懶加載模式，不設定更新間隔
     await bus_cache_manager.start()
     print("公車快取管理器已啟動（懶加載模式，快取過期時間：60秒）")
+
+    # Startup: 初始化 UBike 快取管理器（主動式快取）
+    try:
+        bike_cache_manager = get_bike_cache_manager()
+        await bike_cache_manager.start_scheduler()
+        print("UBike 快取管理器已啟動（主動式快取，站點每小時更新，車位每60秒更新）")
+    except Exception as e:
+        print(f"UBike 快取管理器初始化失敗：{e}")
+        bike_cache_manager = None
 
     # Startup: 初始化新北市 CSV 資料服務
     try:
@@ -298,6 +313,14 @@ async def lifespan(app: FastAPI):
             print("公車快取管理器已停止")
         except Exception as e:
             print(f"Bus cache manager stop ignored: {e}")
+
+    # Shutdown: 停止 UBike 快取管理器
+    if bike_cache_manager:
+        try:
+            await bike_cache_manager.stop_scheduler()
+            print("UBike 快取管理器已停止")
+        except Exception as e:
+            print(f"UBike cache manager stop ignored: {e}")
 
     # Shutdown: close browser and HTTP clients
     if _browser:
@@ -512,6 +535,107 @@ class BusRouteData(BaseModel):
     stops: List[BusStop]  # 站點列表
     buses: List[BusVehicle]  # 行駛中車輛列表
     updated: str  # 更新時間
+
+
+# ==================== UBike 資料模型 ====================
+
+class BikeStation(BaseModel):
+    """腳踏車租借站資訊"""
+    station_uid: str = Field(description="站點唯一識別碼")
+    station_id: str = Field(description="站點代碼")
+    name: str = Field(description="站點中文名稱")
+    name_en: Optional[str] = Field(None, description="站點英文名稱")
+    address: Optional[str] = Field(None, description="中文地址")
+    address_en: Optional[str] = Field(None, description="英文地址")
+    latitude: float = Field(description="緯度")
+    longitude: float = Field(description="經度")
+    capacity: int = Field(description="總車位數")
+    service_type: int = Field(description="服務類型")
+    service_status: int = Field(description="服務狀態")
+    available_rent_bikes: int = Field(description="可租借車輛數")
+    available_return_bikes: int = Field(description="可歸還車位數")
+    general_bikes: Optional[int] = Field(None, description="一般車輛數")
+    electric_bikes: Optional[int] = Field(None, description="電輔車輛數")
+    station_update_time: Optional[str] = Field(None, description="站點資料更新時間")
+    availability_update_time: Optional[str] = Field(None, description="車位資料更新時間")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "station_uid": "TPE0001",
+                "station_id": "0001",
+                "name": "捷運市政府站(3號出口)",
+                "name_en": "MRT Taipei City Hall Stn.(Exit 3)",
+                "address": "忠孝東路/松仁路(東南側)",
+                "address_en": "Sec. 5, Zhongxiao E. Rd./Songren Rd.",
+                "latitude": 25.040857,
+                "longitude": 121.564812,
+                "capacity": 60,
+                "service_type": 1,
+                "service_status": 0,
+                "available_rent_bikes": 15,
+                "available_return_bikes": 45,
+                "general_bikes": 10,
+                "electric_bikes": 5,
+                "station_update_time": "2024-01-15T08:30:00+08:00",
+                "availability_update_time": "2024-01-15T08:32:15+08:00"
+            }
+        }
+    }
+
+
+class BikeStationWithDistance(BikeStation):
+    """腳踏車租借站資訊（含距離）"""
+    distance: float = Field(description="與中心點距離（公尺）")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "station_uid": "TPE0001",
+                "station_id": "0001",
+                "name": "捷運市政府站(3號出口)",
+                "latitude": 25.040857,
+                "longitude": 121.564812,
+                "capacity": 60,
+                "service_type": 1,
+                "service_status": 0,
+                "available_rent_bikes": 15,
+                "available_return_bikes": 45,
+                "distance": 150.5
+            }
+        }
+    }
+
+
+class BikeStationsResponse(BaseModel):
+    """站點列表回應"""
+    success: bool = Field(default=True)
+    data: List[BikeStation]
+    total: int = Field(description="總數量")
+    city: str = Field(description="縣市代碼")
+
+
+class BikeNearbyStationsResponse(BaseModel):
+    """附近站點回應"""
+    success: bool = Field(default=True)
+    data: List[BikeStationWithDistance]
+    center: Dict[str, float] = Field(description="中心座標")
+    radius: int = Field(description="搜尋半徑（公尺）")
+    total: int = Field(description="總數量")
+
+
+class BikeSearchResponse(BaseModel):
+    """搜尋結果回應"""
+    success: bool = Field(default=True)
+    data: List[BikeStation]
+    keyword: str = Field(description="搜尋關鍵字")
+    total: int = Field(description="總數量")
+
+
+class BikeStationDetailResponse(BaseModel):
+    """站點詳細資訊回應"""
+    success: bool = Field(default=True)
+    data: Optional[BikeStation] = Field(None, description="站點詳細資訊")
 
 
 # ==================== HTTP Client ====================
@@ -2134,6 +2258,249 @@ async def test_thsr():
     """測試高鐵爬蟲"""
     results = await thsr_scraper.search_timetable("TPE", "TCH")  # 台北到台中
     return {"count": len(results), "results": results[:5]}
+
+
+# ==================== UBike API ====================
+
+@app.get("/api/bike/stations", response_model=BikeStationsResponse)
+async def get_bike_stations(
+    city: str = Query(..., description="縣市代碼（Taipei, NewTaipei, Taichung 等）")
+):
+    """
+    取得縣市所有腳踏車租借站
+
+    回傳指定縣市的所有 YouBike 租借站資訊，包含站點基本資料與即時車位資訊。
+    資料來自快取管理器，若快取不存在則會自動從 TDX API 撈取。
+    """
+    # 驗證縣市代碼
+    if city not in SUPPORTED_CITIES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"不支援的縣市代碼: {city}。支援的縣市: {', '.join(SUPPORTED_CITIES[:6])}..."
+        )
+
+    try:
+        # 優先從快取管理器讀取
+        if bike_cache_manager:
+            stations = bike_cache_manager.get_cached_merged(city)
+            if stations:
+                logger.info(f"從快取回傳 {city} 的 {len(stations)} 個站點")
+                data = [BikeStation(**station) for station in stations]
+                return BikeStationsResponse(
+                    success=True,
+                    data=data,
+                    total=len(data),
+                    city=city
+                )
+
+        # 若快取沒有，fallback 到直接呼叫 TDX API
+        logger.info(f"快取未命中，從 TDX API 撈取 {city} 站點資料")
+        bike_service = get_bike_service()
+        stations = await bike_service.get_stations_with_availability(city)
+
+        # 轉換為回應格式
+        data = [BikeStation(**station) for station in stations]
+
+        return BikeStationsResponse(
+            success=True,
+            data=data,
+            total=len(data),
+            city=city
+        )
+    except Exception as e:
+        logger.error(f"取得租借站資料失敗: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/bike/stations/nearby", response_model=BikeNearbyStationsResponse)
+async def get_nearby_bike_stations(
+    lat: float = Query(..., description="緯度（-90 ~ 90）", ge=-90, le=90),
+    lon: float = Query(..., description="經度（-180 ~ 180）", ge=-180, le=180),
+    radius: int = Query(1000, description="搜尋半徑（公尺，最大 5000）", ge=100, le=5000),
+    limit: int = Query(20, description="回傳數量上限", ge=1, le=100),
+    city: str = Query("Taipei", description="縣市代碼")
+):
+    """
+    取得附近腳踏車租借站
+
+    使用 Haversine Formula 計算距離，回傳指定範圍內的租借站，
+    按距離由近到遠排序。資料來自快取管理器。
+    """
+    # 驗證縣市代碼
+    if city not in SUPPORTED_CITIES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"不支援的縣市代碼: {city}"
+        )
+
+    try:
+        bike_service = get_bike_service()
+
+        # 優先從快取讀取站點資料
+        if bike_cache_manager:
+            stations = bike_cache_manager.get_cached_merged(city)
+            if stations:
+                logger.info(f"從快取取得 {city} 站點進行附近搜尋")
+                # 使用快取資料進行附近搜尋
+                nearby = bike_service.calculate_nearby_from_list(
+                    stations, lat, lon, radius, limit
+                )
+                data = [BikeStationWithDistance(**station) for station in nearby]
+                return BikeNearbyStationsResponse(
+                    success=True,
+                    data=data,
+                    center={"lat": lat, "lon": lon},
+                    radius=radius,
+                    total=len(data)
+                )
+
+        # 若快取沒有，fallback 到直接呼叫 TDX API
+        logger.info(f"快取未命中，從 TDX API 撈取 {city} 附近站點")
+        nearby = await bike_service.get_nearby_stations(city, lat, lon, radius, limit)
+
+        # 轉換為回應格式
+        data = [BikeStationWithDistance(**station) for station in nearby]
+
+        return BikeNearbyStationsResponse(
+            success=True,
+            data=data,
+            center={"lat": lat, "lon": lon},
+            radius=radius,
+            total=len(data)
+        )
+    except Exception as e:
+        logger.error(f"搜尋附近租借站失敗: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/bike/search", response_model=BikeSearchResponse)
+async def search_bike_stations(
+    keyword: str = Query(..., description="搜尋關鍵字", min_length=1),
+    city: Optional[str] = Query(None, description="指定縣市（未提供則搜尋預設縣市）"),
+    limit: int = Query(20, description="回傳數量上限", ge=1, le=100)
+):
+    """
+    搜尋腳踏車租借站
+
+    依關鍵字搜尋租借站名稱或地址，支援模糊比對。
+    優先從快取搜尋，若快取不存在則從 TDX API 撈取。
+    """
+    try:
+        bike_service = get_bike_service()
+
+        # 如果指定了縣市，優先從快取讀取
+        if city and bike_cache_manager:
+            stations = bike_cache_manager.get_cached_merged(city)
+            if stations:
+                logger.info(f"從快取搜尋 {city} 的站點")
+                # 在快取資料中搜尋
+                keyword_lower = keyword.lower()
+                results = []
+                for station in stations:
+                    name = station.get("name", "").lower()
+                    name_en = station.get("name_en", "").lower()
+                    address = station.get("address", "").lower()
+
+                    if (keyword_lower in name or
+                        keyword_lower in name_en or
+                        keyword_lower in address):
+                        station_copy = station.copy()
+                        station_copy["city"] = city
+                        results.append(station_copy)
+
+                results = results[:limit]
+                data = [BikeStation(**station) for station in results]
+                return BikeSearchResponse(
+                    success=True,
+                    data=data,
+                    keyword=keyword,
+                    total=len(data)
+                )
+
+        # 若快取沒有或未指定縣市，fallback 到直接呼叫 TDX API
+        logger.info(f"從 TDX API 搜尋站點: {keyword}")
+        results = await bike_service.search_stations(keyword, city, limit)
+
+        # 轉換為回應格式
+        data = [BikeStation(**station) for station in results]
+
+        return BikeSearchResponse(
+            success=True,
+            data=data,
+            keyword=keyword,
+            total=len(data)
+        )
+    except Exception as e:
+        logger.error(f"搜尋租借站失敗: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/bike/cache/status")
+async def get_bike_cache_status():
+    """
+    取得 UBike 快取狀態
+
+    回傳快取管理器的狀態資訊，包含各縣市資料更新時間和統計。
+    """
+    if bike_cache_manager is None:
+        raise HTTPException(status_code=503, detail="UBike 快取管理器未啟動")
+
+    try:
+        status = bike_cache_manager.get_cache_status()
+        return {
+            "success": True,
+            "status": status
+        }
+    except Exception as e:
+        logger.error(f"取得快取狀態失敗: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+async def get_bike_station_detail(
+    station_uid: str,
+    city: str = Query(..., description="縣市代碼")
+):
+    """
+    取得特定站點詳細資訊
+
+    回傳指定站點的完整資訊，包含即時車位狀態。
+    優先從快取讀取，若快取不存在則從 TDX API 撈取。
+    """
+    # 驗證縣市代碼
+    if city not in SUPPORTED_CITIES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"不支援的縣市代碼: {city}"
+        )
+
+    try:
+        # 優先從快取管理器讀取
+        if bike_cache_manager:
+            stations = bike_cache_manager.get_cached_merged(city)
+            if stations:
+                logger.info(f"從快取查找站點 {station_uid}")
+                for station in stations:
+                    if station.get("station_uid") == station_uid:
+                        return BikeStationDetailResponse(
+                            success=True,
+                            data=BikeStation(**station)
+                        )
+
+        # 若快取沒有，fallback 到直接呼叫 TDX API
+        logger.info(f"快取未命中，從 TDX API 取得站點 {station_uid}")
+        bike_service = get_bike_service()
+        station = await bike_service.get_station_detail(city, station_uid)
+
+        if not station:
+            raise HTTPException(status_code=404, detail=f"找不到站點: {station_uid}")
+
+        return BikeStationDetailResponse(
+            success=True,
+            data=BikeStation(**station)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"取得站點詳細資訊失敗: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

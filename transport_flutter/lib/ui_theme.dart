@@ -34,6 +34,25 @@ class AppColors {
   static const Color bus = Color(0xFF4CAF50);          // 公車綠
   static const Color railway = Color(0xFFFF6D00);      // 台鐵橘
   static const Color thsr = Color(0xFFE53935);         // 高鐵紅
+  static const Color bike = Color(0xFF2E7D32);         // UBike 環保綠
+}
+
+/// UBike 專屬顏色
+class BikeColors {
+  // 主要環保綠色
+  static const Color primary = Color(0xFF2E7D32);      // 深綠色
+  static const Color primaryLight = Color(0xFF4CAF50); // 亮綠色
+  static const Color primaryDark = Color(0xFF1B5E20);  // 墨綠色
+
+  // 狀態顏色
+  static const Color available = Color(0xFF4CAF50);    // 綠色 - 充足
+  static const Color limited = Color(0xFFFFC107);      // 黃色 - 中等
+  static const Color few = Color(0xFFF44336);          // 紅色 - 少量
+  static const Color empty = Color(0xFF9E9E9E);        // 灰色 - 無車
+
+  // 輔助色
+  static const Color accent = Color(0xFF81C784);       // 淺綠色
+  static const Color background = Color(0xFFE8F5E9);   // 極淺綠背景
 }
 
 /// 統一的陰影樣式

@@ -8,6 +8,7 @@ import '../ui_theme.dart';
 import 'bus_screen.dart';
 import 'railway_screen.dart';
 import 'thsr_screen.dart';
+import 'bike_screen.dart';
 
 // 公車 Tab 內容 - 顯示大台北公車入口卡片
 class BusTabContent extends StatelessWidget {
@@ -107,6 +108,7 @@ class _MainTabScreenState extends State<MainTabScreen>
     TransportColors.bus,      // 公車：草綠色（與黃色協調）
     TransportColors.railway,  // 火車：暖橘色（與黃色協調）
     TransportColors.thsr,     // 高鐵：珊瑚橘（與黃色協調）
+    const Color(0xFF2E7D32),  // 腳踏車：環保綠色
   ];
 
   @override
@@ -114,7 +116,7 @@ class _MainTabScreenState extends State<MainTabScreen>
     super.initState();
     _motionTabBarController = MotionTabBarController(
       initialIndex: 0,
-      length: 3,
+      length: 4,
       vsync: this,
     );
   }
@@ -127,7 +129,7 @@ class _MainTabScreenState extends State<MainTabScreen>
 
   // 切換到指定 tab 的方法，供子元件呼叫
   void switchToTab(int index) {
-    if (index >= 0 && index < 3) {
+    if (index >= 0 && index < 4) {
       setState(() {
         _motionTabBarController!.index = index;
       });
@@ -175,13 +177,14 @@ class _MainTabScreenState extends State<MainTabScreen>
           controller: _motionTabBarController,
           initialSelectedTab: "公車",
           useSafeArea: true,
-          labels: const ["公車", "火車", "高鐵"],
+          labels: const ["公車", "火車", "高鐵", "腳踏車"],
           icons: const [
             Icons.directions_bus,
             Icons.train,
             Icons.speed,
+            Icons.pedal_bike,
           ],
-          badges: const [null, null, null],
+          badges: const [null, null, null, null],
           tabSize: 50,
           tabBarHeight: 60,
           textStyle: const TextStyle(
@@ -212,6 +215,8 @@ class _MainTabScreenState extends State<MainTabScreen>
           RailwayTabView(),
           // 高鐵 tab 內容
           THSRTabView(),
+          // 腳踏車 tab 內容
+          BikeTabView(),
         ],
       ),
     );
@@ -237,5 +242,16 @@ class THSRTabView extends StatelessWidget {
   Widget build(BuildContext context) {
     // 使用 THSRScreen，隱藏其 AppBar
     return const THSRScreen(showAppBar: false);
+  }
+}
+
+// 腳踏車 Tab 視圖 - 直接使用 BikeScreen 的內容（隱藏 AppBar）
+class BikeTabView extends StatelessWidget {
+  const BikeTabView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // 使用 BikeScreen，隱藏其 AppBar
+    return const BikeScreen(showAppBar: false);
   }
 }
