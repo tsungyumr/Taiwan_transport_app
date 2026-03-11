@@ -30,11 +30,15 @@ class BusTimeEntry {
   final String stopName;
   final String arrivalTime;
   final String routeName;
+  final double? latitude;
+  final double? longitude;
 
   BusTimeEntry({
     required this.stopName,
     required this.arrivalTime,
     required this.routeName,
+    this.latitude,
+    this.longitude,
   });
 
   factory BusTimeEntry.fromJson(Map<String, dynamic> json) {
@@ -42,7 +46,17 @@ class BusTimeEntry {
       stopName: json['stop_name'] ?? '',
       arrivalTime: json['arrival_time'] ?? '',
       routeName: json['route_name'] ?? '',
+      latitude: json['latitude'] != null ? (json['latitude'] as num).toDouble() : null,
+      longitude: json['longitude'] != null ? (json['longitude'] as num).toDouble() : null,
     );
+  }
+
+  // 取得座標顯示文字
+  String get coordinatesText {
+    if (latitude != null && longitude != null) {
+      return '(${latitude!.toStringAsFixed(4)}, ${longitude!.toStringAsFixed(4)})';
+    }
+    return '';
   }
 }
 

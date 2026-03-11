@@ -401,6 +401,8 @@ class BusTimeEntry(BaseModel):
     stop_name: str
     arrival_time: str
     route_name: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class BusRealTimeArrival(BaseModel):
@@ -1307,31 +1309,129 @@ async def search_bus_routes(
 
 
 @app.get("/api/bus/timetable/{route_id}", response_model=List[BusTimeEntry])
-async def get_bus_timetable(route_id: str):
+async def get_bus_timetable(route_id: str, city: str = Query(None, description="縣市代碼 (Taipei, NewTaipei，或 None 自動搜尋)")):
     """
-    取得公車時刻表
+    取得公車時刻表（純 TDX API 版本）
 
-    使用 ebus.gov.taipei 爬蟲取得真實的時刻表資料
+    使用 TDX API 取得路線站點資料（包含經緯度）和預估到站時間
+    若未指定城市，會自動搜尋 Taipei 和 NewTaipei
     """
     try:
-        # 建立新的爬蟲實例並使用 async with 確保資源正確釋放
-        async with TaipeiBusScraper(headless=True) as scraper:
-            # 呼叫爬蟲取得路線資訊
-            route_info = await scraper.get_route_info(route_id, direction=0)
+        bus_service = get_bus_service()
 
-            # 轉換為時刻表格式
-            timetable = []
-            for stop in route_info.stops:
-                eta_str = f"{stop.eta}min" if stop.eta is not None else "N/A"
-                timetable.append(BusTimeEntry(
-                    stop_name=stop.name,
-                    arrival_time=eta_str,
-                    route_name=route_info.route_name
-                ))
-            return timetable[:50]
+        # 決定要搜尋的城市列表
+        cities_to_search = []
+        if city:
+            cities_to_search = [city]
+        else:
+            # 自動搜尋兩個城市
+            cities_to_search = ["Taipei", "NewTaipei"]
+
+        stop_info_map = {}  # {stop_uid: stop_info}
+        eta_map = {}  # {stop_uid: eta_info}
+
+        # 遍歷所有要搜尋的城市
+        for search_city in cities_to_search:
+            try:
+                # 1. 取得路線站點資料（包含經緯度座標）
+                route_stops_data = await bus_service.get_route_stops(route_id, city=search_city)
+
+                # 2. 取得預估到站時間資料
+                eta_data = await bus_service.get_estimated_time_of_arrival(route_id, city=search_city)
+
+                # 3. 建立站點資訊對照表（以 StopUID 為 key）
+                for route_data in route_stops_data:
+                    direction = route_data.get("Direction", 0)
+                    stops = route_data.get("Stops", [])
+                    for stop in stops:
+                        stop_uid = stop.get("StopUID", "")
+                        if stop_uid and stop_uid not in stop_info_map:
+                            stop_info_map[stop_uid] = {
+                                "stop_name": stop.get("StopName", {}).get("Zh_tw", ""),
+                                "stop_id": stop.get("StopID", ""),
+                                "latitude": stop.get("StopPosition", {}).get("PositionLat"),
+                                "longitude": stop.get("StopPosition", {}).get("PositionLon"),
+                                "direction": direction,
+                                "sequence": stop.get("StopSequence", 0)
+                            }
+
+                # 4. 建立預估到站時間對照表
+                for eta_item in eta_data:
+                    stop_uid = eta_item.get("StopUID", "")
+                    if stop_uid and stop_uid not in eta_map:
+                        eta_map[stop_uid] = eta_item
+
+                logger.info(f"從 {search_city} 取得資料完成")
+
+            except Exception as e:
+                logger.warning(f"從 {search_city} 取得資料失敗: {e}")
+                continue
+
+        logger.info(f"共取得 {len(stop_info_map)} 個站點資訊, {len(eta_map)} 筆預估到站時間")
+
+        if not stop_info_map:
+            logger.warning(f"未找到路線 {route_id} 的站點資料")
+            return []
+
+        # 5. 合併資料，建立時刻表
+        timetable = []
+        processed_stops = set()
+
+        for stop_uid, stop_info in stop_info_map.items():
+            if stop_uid in processed_stops:
+                continue
+            processed_stops.add(stop_uid)
+
+            stop_name = stop_info["stop_name"]
+            latitude = stop_info["latitude"]
+            longitude = stop_info["longitude"]
+
+            # 取得預估到站時間
+            eta_item = eta_map.get(stop_uid, {})
+            estimate_time = eta_item.get("EstimateTime")
+            stop_status = eta_item.get("StopStatus", 0)
+
+            # 格式化到站時間
+            if estimate_time is not None:
+                eta_minutes = int(estimate_time / 60)
+                if eta_minutes < 1:
+                    arrival_time = "即將進站"
+                elif eta_minutes < 60:
+                    arrival_time = f"{eta_minutes}分"
+                else:
+                    hours = eta_minutes // 60
+                    mins = eta_minutes % 60
+                    arrival_time = f"{hours}時{mins}分"
+            else:
+                # 根據狀態顯示不同訊息
+                status_map = {
+                    1: "未發車",
+                    2: "已到站",
+                    3: "已過站"
+                }
+                arrival_time = status_map.get(stop_status, "無資料")
+
+            timetable.append(BusTimeEntry(
+                stop_name=stop_name,
+                arrival_time=arrival_time,
+                route_name=route_id,
+                latitude=latitude,
+                longitude=longitude
+            ))
+
+        # 依照站點順序排序
+        timetable.sort(key=lambda x: stop_info_map.get(
+            next((k for k, v in stop_info_map.items() if v["stop_name"] == x.stop_name), ""),
+            {}).get("sequence", 0)
+        )
+
+        logger.info(f"成功建立時刻表，共 {len(timetable)} 個站點")
+        return timetable
 
     except Exception as e:
         logger.error(f"取得公車時刻表失敗：{e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 
@@ -1492,6 +1592,9 @@ async def get_bus_route(
 
         # 收集所有站點 UID 用於批量查詢經緯度
         all_stop_uids = []
+        # 同時建立從 stop_uid 到 stop 資料的映射，用於直接取得經緯度
+        stop_data_map = {}  # {stop_uid: stop_data}
+
         for route_stop in route_stops_data:
             route_stop_direction = route_stop.get("Direction", 0)
             if route_stop_direction != direction:
@@ -1501,14 +1604,15 @@ async def get_bus_route(
                 stop_uid = stop.get("StopUID", "")
                 if stop_uid:
                     all_stop_uids.append(stop_uid)
+                    stop_data_map[stop_uid] = stop  # 儲存完整的 stop 資料
 
-        # 批量取得站點經緯度
+        # 批量取得站點經緯度（從快取，作為備援）
         stop_positions = {}
         try:
             stop_positions = await bus_service.get_stop_positions_batch(all_stop_uids)
-            logger.info(f"成功取得 {len(stop_positions)} 個站點的經緯度資料")
+            logger.info(f"從快取取得 {len(stop_positions)} 個站點的經緯度資料")
         except Exception as e:
-            logger.warning(f"取得站點經緯度資料失敗: {e}")
+            logger.warning(f"從快取取得站點經緯度資料失敗: {e}")
 
         for route_stop in route_stops_data:
             # 檢查方向是否匹配（避免重複加入其他方向的站點）
@@ -1536,10 +1640,24 @@ async def get_bus_route(
                 # 取得 ETA 資訊
                 eta_info = eta_map.get(stop_uid, {"text": "未發車", "status": "not_started"})
 
-                # 取得站點經緯度
-                position = stop_positions.get(stop_uid, {})
-                latitude = position.get("latitude")
-                longitude = position.get("longitude")
+                # 取得站點經緯度（優先從 stop 資料直接取得，若失敗則從快取）
+                latitude = None
+                longitude = None
+
+                # 方法 1: 直接從 stop 資料取得（最可靠）
+                stop_position = stop.get("StopPosition", {})
+                if stop_position:
+                    latitude = stop_position.get("PositionLat")
+                    longitude = stop_position.get("PositionLon")
+
+                # 方法 2: 若直接取得失敗，嘗試從快取取得
+                if latitude is None or longitude is None:
+                    position = stop_positions.get(stop_uid, {})
+                    latitude = position.get("latitude")
+                    longitude = position.get("longitude")
+
+                if latitude is None or longitude is None:
+                    logger.debug(f"站點 {stop_name} (UID: {stop_uid}) 沒有經緯度資料")
 
                 stops.append(BusStop(
                     sequence=stop_sequence,
@@ -1798,31 +1916,41 @@ async def get_railway_timetable(
 
 @app.get("/api/thsr/stations")
 async def get_thsr_stations():
-    """取得高鐵車站列表 (使用 TDX API)"""
+    """取得高鐵車站列表 (使用 TDX API)，包含經緯度座標"""
     try:
         thsr_service = get_thsr_service()
-        tdx_stations = await thsr_service.get_stations()
+        # 使用新的方法取得包含經緯度的站點資料
+        stations_with_pos = await thsr_service.get_stations_with_positions()
 
         stations = []
-        for station in tdx_stations:
+        for station in stations_with_pos:
             station_id = station.get("StationID", "")
             station_name = station.get("StationName", {}).get("Zh_tw", "")
             station_name_en = station.get("StationName", {}).get("En", "")
+            latitude = station.get("latitude")
+            longitude = station.get("longitude")
 
             if station_id and station_name:
                 stations.append({
                     "code": station_id,
                     "name": station_name,
-                    "name_en": station_name_en
+                    "name_en": station_name_en,
+                    "latitude": latitude,
+                    "longitude": longitude,
                 })
 
         return stations
     except Exception as e:
         logger.error(f"取得高鐵站點列表失敗: {e}")
-        # 如果 TDX API 失敗，回傳靜態站點列表作為備援
+        # 如果 TDX API 失敗，回傳靜態站點列表作為備援（無經緯度）
         stations = []
         for code, name in THSRScraper.STATIONS.items():
-            stations.append({"code": code, "name": name})
+            stations.append({
+                "code": code,
+                "name": name,
+                "latitude": None,
+                "longitude": None,
+            })
         return stations
 
 

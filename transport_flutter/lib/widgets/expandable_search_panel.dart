@@ -99,7 +99,7 @@ class _ExpandableSearchPanelState extends State<ExpandableSearchPanel>
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.md,
-                vertical: AppSpacing.md,
+                vertical: AppSpacing.sm,
               ),
               child: Row(
                 children: [
@@ -159,14 +159,21 @@ class _ExpandableSearchPanelState extends State<ExpandableSearchPanel>
                   child: child,
                 );
               },
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  0,
-                  AppSpacing.md,
-                  AppSpacing.md,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxHeight: 400, // 限制最大高度
                 ),
-                child: widget.expandedContent,
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      0,
+                      AppSpacing.md,
+                      AppSpacing.md,
+                    ),
+                    child: widget.expandedContent,
+                  ),
+                ),
               ),
             ),
           ),

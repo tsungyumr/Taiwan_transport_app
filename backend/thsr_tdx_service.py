@@ -22,7 +22,78 @@ TDX_API_BASE_URL = "https://tdx.transportdata.tw/api/basic/v2"
 
 # 快取設定（秒）
 CACHE_TTL_STATIONS = 3600       # 站點資料快取 1 小時
+CACHE_TTL_STATION_POSITIONS = 7200  # 站點位置快取 2 小時
 CACHE_TTL_TIMETABLE = 300       # 時刻表快取 5 分鐘
+
+
+class THSRStationPositionCache:
+    """
+    高鐵站點位置快取管理器
+    定期撈取並快取所有站點的經緯度座標
+    """
+
+    def __init__(self, thsr_service: 'THSRTDXService'):
+        self.thsr_service = thsr_service
+        self._station_positions: Dict[str, Dict[str, float]] = {}  # {station_id: {lat, lon}}
+        self._last_update: Optional[datetime] = None
+        self._update_interval = 3600  # 1 小時更新一次
+        self._lock = asyncio.Lock()
+
+    async def get_station_position(self, station_id: str) -> Optional[Dict[str, float]]:
+        """取得指定站點的經緯度座標"""
+        if self._needs_update():
+            await self._refresh_cache()
+        return self._station_positions.get(station_id)
+
+    async def get_multiple_positions(self, station_ids: List[str]) -> Dict[str, Dict[str, float]]:
+        """批量取得多個站點的經緯度座標"""
+        if self._needs_update():
+            await self._refresh_cache()
+        return {
+            sid: self._station_positions[sid]
+            for sid in station_ids
+            if sid in self._station_positions
+        }
+
+    def _needs_update(self) -> bool:
+        """檢查是否需要更新快取"""
+        if not self._last_update:
+            return True
+        elapsed = (datetime.now() - self._last_update).total_seconds()
+        return elapsed > self._update_interval
+
+    async def _refresh_cache(self):
+        """重新整理快取資料"""
+        async with self._lock:
+            if not self._needs_update():
+                return
+
+            logger.info("【THSRStationPositionCache】開始更新站點位置快取...")
+            total_updated = 0
+
+            try:
+                stations = await self.thsr_service.get_stations()
+                for station in stations:
+                    station_id = station.get("StationID", "")
+                    position = station.get("StationPosition", {})
+                    if station_id and position:
+                        self._station_positions[station_id] = {
+                            "latitude": position.get("PositionLat"),
+                            "longitude": position.get("PositionLon")
+                        }
+                        total_updated += 1
+                logger.info(f"【THSRStationPositionCache】已更新 {total_updated} 個站點")
+            except Exception as e:
+                logger.error(f"【THSRStationPositionCache】更新失敗: {e}")
+
+            self._last_update = datetime.now()
+
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """取得快取統計資訊"""
+        return {
+            "total_stations": len(self._station_positions),
+            "last_update": self._last_update.isoformat() if self._last_update else None,
+        }
 
 
 class THSRTDXService:
@@ -45,6 +116,8 @@ class THSRTDXService:
         self.base_url = TDX_API_BASE_URL
         # 記憶體快取：{cache_key: (timestamp, data)}
         self._cache: Dict[str, Tuple[float, Any]] = {}
+        # 站點位置快取
+        self._position_cache = THSRStationPositionCache(self)
 
     def _get_cached(self, key: str, ttl: int) -> Optional[Any]:
         """取得快取資料，若過期則回傳 None"""
@@ -352,7 +425,53 @@ class THSRTDXService:
             name = station.get("StationName", {}).get("Zh_tw", "")
             if name == station_name:
                 return station
-        return None
+    async def get_station_position(self, station_id: str) -> Optional[Dict[str, float]]:
+        """
+        取得指定站點的經緯度座標
+
+        Args:
+            station_id: 站點代碼（如 "1000"）
+
+        Returns:
+            包含 latitude 和 longitude 的字典，找不到則回傳 None
+        """
+        return await self._position_cache.get_station_position(station_id)
+
+    async def get_all_station_positions(self) -> Dict[str, Dict[str, float]]:
+        """
+        取得所有站點的經緯度座標
+
+        Returns:
+            站點代碼到經緯度的字典映射
+        """
+        # 確保快取已載入
+        await self._position_cache._refresh_cache()
+        return self._position_cache._station_positions.copy()
+
+    async def get_stations_with_positions(self) -> List[Dict[str, Any]]:
+        """
+        取得所有站點資料，包含經緯度座標
+
+        Returns:
+            站點資料列表，每個站點包含額外的 latitude 和 longitude 欄位
+        """
+        stations = await self.get_stations()
+        positions = await self.get_all_station_positions()
+
+        result = []
+        for station in stations:
+            station_id = station.get("StationID", "")
+            position = positions.get(station_id, {})
+
+            # 建立新的站點資料，加入經緯度
+            station_with_pos = {
+                **station,
+                "latitude": position.get("latitude"),
+                "longitude": position.get("longitude"),
+            }
+            result.append(station_with_pos)
+
+        return result
 
 
 # 建立全域服務實例

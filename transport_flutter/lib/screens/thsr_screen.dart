@@ -315,8 +315,25 @@ class _THSRScreenState extends State<THSRScreen> {
           items: _stations
               .map((station) => DropdownMenuItem(
                     value: station.stationCode,
-                    child: Text(station.stationName),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(station.stationName),
+                        if (station.coordinatesText.isNotEmpty)
+                          Text(
+                            station.coordinatesText,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
+                          ),
+                      ],
+                    ),
                   ))
+              .toList(),
+          selectedItemBuilder: (context) => _stations
+              .map((station) => Text(station.stationName))
               .toList(),
           onChanged: (value) {
             if (value != null) {
@@ -341,8 +358,25 @@ class _THSRScreenState extends State<THSRScreen> {
           items: _stations
               .map((station) => DropdownMenuItem(
                     value: station.stationCode,
-                    child: Text(station.stationName),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(station.stationName),
+                        if (station.coordinatesText.isNotEmpty)
+                          Text(
+                            station.coordinatesText,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
+                          ),
+                      ],
+                    ),
                   ))
+              .toList(),
+          selectedItemBuilder: (context) => _stations
+              .map((station) => Text(station.stationName))
               .toList(),
           onChanged: (value) {
             if (value != null) {

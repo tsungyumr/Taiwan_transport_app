@@ -322,7 +322,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                     child: Row(
                       children: [
-                        Icon(Icons.train, size: 16, color: AppColors.onSurfaceLight),
+                        const Icon(Icons.train, size: 16, color: AppColors.onSurfaceLight),
                         const SizedBox(width: AppSpacing.xs),
                         Text(
                           '找到 ${_filteredTimetable.length} 班次',
@@ -372,9 +372,10 @@ class _RailwayScreenState extends State<RailwayScreen> {
   }
 
   Widget _buildSearchForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
         // 出發縣市選擇
         StyledDropdown<String>(
           value: _selectedFromCity,
@@ -449,7 +450,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
             }
           },
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.xs),
 
         // 抵達縣市選擇
         StyledDropdown<String>(
@@ -582,7 +583,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.access_time,
+                    const Icon(Icons.access_time,
                         color: TransportColors.railway, size: 16),
                     const SizedBox(width: AppSpacing.xs),
                     Text(
@@ -679,8 +680,9 @@ class _RailwayScreenState extends State<RailwayScreen> {
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Color _getTrainTypeColor(String trainType) {
     if (trainType.contains('太魯閣') || trainType.contains('普悠瑪')) {
