@@ -231,7 +231,5 @@ class BikeTabView extends StatelessWidget {
         ),
       ),
     );
-    //return const BikeMapScreen();
-    //return const BikeScreen(showAppBar: false);
   }
 }

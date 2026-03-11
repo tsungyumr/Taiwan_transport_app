@@ -35,7 +35,6 @@ class StationMarker extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Stack(children: [
-
         Container(
           width: 48,
           height: 48,
@@ -64,14 +63,13 @@ class StationMarker extends StatelessWidget {
             ],
           ),
         ),
-
         if (station.matchSearch)
           Container(
-            margin: EdgeInsets.only(top: 18,left: 32),
-            child:            const Icon(
-              Icons.search,
-              size: 20,
-              color: Colors.amberAccent,
+            margin: const EdgeInsets.only(top: 13, left: 32),
+            child: const Icon(
+              Icons.star_border,
+              size: 35,
+              color: Colors.cyanAccent,
             ),
           ),
       ]),
@@ -144,7 +142,7 @@ class RefreshButton extends StatelessWidget {
       foregroundColor: AppColors.primary,
       elevation: 4,
       child: isLoading
-          ? SizedBox(
+          ? const SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(

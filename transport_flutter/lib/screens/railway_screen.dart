@@ -304,39 +304,44 @@ class _RailwayScreenState extends State<RailwayScreen> {
           ? const Center(
               child: PulseLoading(color: TransportColors.railway),
             )
-          : Column(
-              children: [
-                // 可展開/縮小的搜尋條件區域
-                ExpandableSearchPanel(
-                  isExpanded: _isSearchPanelExpanded,
-                  onToggle: _toggleSearchPanel,
-                  summaryText: _getSearchSummary(),
-                  accentColor: TransportColors.railway,
-                  title: '搜尋條件',
-                  expandedContent: _buildSearchForm(),
-                ),
-
-                // 結果統計
-                if (_filteredTimetable.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.train, size: 16, color: AppColors.onSurfaceLight),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(
-                          '找到 ${_filteredTimetable.length} 班次',
-                          style: AppTextStyles.labelMedium.copyWith(
-                            color: AppColors.onSurfaceLight,
-                          ),
-                        ),
-                      ],
-                    ),
+          : SafeArea(
+              child: Column(
+                children: [
+                  // 可展開/縮小的搜尋條件區域
+                  ExpandableSearchPanel(
+                    isExpanded: _isSearchPanelExpanded,
+                    onToggle: _toggleSearchPanel,
+                    summaryText: _getSearchSummary(),
+                    accentColor: TransportColors.railway,
+                    title: '搜尋條件',
+                    expandedContent: _buildSearchForm(),
                   ),
 
-                // 時刻表列表
-                Expanded(
-                  child: _filteredTimetable.isEmpty
+                  // 結果統計
+                  if (_filteredTimetable.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: AppSpacing.md,
+                        right: AppSpacing.md,
+                        bottom: AppSpacing.xs,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.train, size: 16, color: AppColors.onSurfaceLight),
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            '找到 ${_filteredTimetable.length} 班次',
+                            style: AppTextStyles.labelMedium.copyWith(
+                              color: AppColors.onSurfaceLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // 時刻表列表
+                  Expanded(
+                    child: _filteredTimetable.isEmpty
                       ? _isLoading
                           ? const Center(child: PulseLoading(color: TransportColors.railway))
                           : const EmptyStateCard(
@@ -368,6 +373,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
                 ),
               ],
             ),
+          ),
     );
   }
 

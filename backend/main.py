@@ -24,6 +24,7 @@ from thsr_tdx_service import get_thsr_service
 from bus_tdx_service import get_bus_service
 from bike_tdx_service import get_bike_service, SUPPORTED_CITIES
 from bike_cache_manager import get_bike_cache_manager
+from services.cache_manager import get_cache_manager, initialize_cache_manager, shutdown_cache_manager
 # 快取管理器會在 lifespan 中初始化
 import os
 import random
@@ -263,6 +264,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"記憶體快取服務初始化失敗：{e}")
 
+    # Startup: 初始化統一快取管理器
+    try:
+        await initialize_cache_manager()
+        print("統一快取管理器已啟動")
+    except Exception as e:
+        print(f"統一快取管理器初始化失敗：{e}")
+
     # Startup: 初始化背景排程器
     try:
         scheduler = get_background_scheduler()
@@ -305,6 +313,13 @@ async def lifespan(app: FastAPI):
         print("記憶體快取服務已停止")
     except Exception as e:
         print(f"記憶體快取停止失敗: {e}")
+
+    # Shutdown: 停止統一快取管理器
+    try:
+        await shutdown_cache_manager()
+        print("統一快取管理器已停止")
+    except Exception as e:
+        print(f"統一快取管理器停止失敗: {e}")
 
     # Shutdown: 停止公車快取管理器
     if bus_cache_manager:
@@ -1439,7 +1454,21 @@ async def get_bus_timetable(route_id: str, city: str = Query(None, description="
 
     使用 TDX API 取得路線站點資料（包含經緯度）和預估到站時間
     若未指定城市，會自動搜尋 Taipei 和 NewTaipei
+    快取 TTL: 60 秒
     """
+    # 建立快取鍵
+    cache_key = f"bus_timetable:{route_id}:{city or 'all'}"
+
+    # 嘗試從快取取得
+    try:
+        cache_manager = get_cache_manager()
+        cached = await cache_manager.bus_timetable_cache.get(cache_key)
+        if cached:
+            logger.info(f"公車時刻表快取命中: {route_id} (city={city})")
+            return cached
+    except Exception as e:
+        logger.warning(f"讀取快取時發生錯誤: {e}")
+
     try:
         bus_service = get_bus_service()
 
@@ -1550,6 +1579,15 @@ async def get_bus_timetable(route_id: str, city: str = Query(None, description="
         )
 
         logger.info(f"成功建立時刻表，共 {len(timetable)} 個站點")
+
+        # 存入快取 (TTL: 60 秒)
+        try:
+            cache_manager = get_cache_manager()
+            await cache_manager.bus_timetable_cache.set(cache_key, timetable)
+            logger.info(f"公車時刻表已存入快取: {route_id} (TTL: 60 秒)")
+        except Exception as e:
+            logger.warning(f"存入快取時發生錯誤: {e}")
+
         return timetable
 
     except Exception as e:
@@ -1929,6 +1967,49 @@ async def clear_bus_cache():
     except Exception as e:
         logger.error(f"清空快取失敗：{e}")
         raise HTTPException(status_code=500, detail=f"清空快取失敗：{str(e)}")
+
+
+# ==================== 統一快取管理 API ====================
+
+@app.get("/api/cache/status")
+async def get_cache_status():
+    """
+    取得統一快取管理器的狀態資訊
+
+    返回所有快取的統計資訊，包括命中率、項目數量等
+    """
+    try:
+        cache_manager = get_cache_manager()
+        return cache_manager.get_all_stats()
+    except Exception as e:
+        logger.error(f"取得快取狀態失敗：{e}")
+        raise HTTPException(status_code=500, detail=f"取得快取狀態失敗：{str(e)}")
+
+
+@app.post("/api/cache/clear/{service}")
+async def clear_service_cache(service: str):
+    """
+    清除指定服務的快取
+
+    參數:
+        service: 服務名稱 (bus, tra, thsr, bike, all)
+    """
+    try:
+        cache_manager = get_cache_manager()
+
+        if service == "all":
+            await cache_manager.clear_all()
+            return {"success": True, "message": "所有快取已清除"}
+        elif service in ["bus", "tra", "thsr", "bike"]:
+            await cache_manager.clear_service_cache(service)
+            return {"success": True, "message": f"{service} 服務的快取已清除"}
+        else:
+            raise HTTPException(status_code=400, detail=f"未知的服務名稱: {service}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"清除快取失敗：{e}")
+        raise HTTPException(status_code=500, detail=f"清除快取失敗：{str(e)}")
 
 
 # ----- 台鐵 API (使用 TDX) -----

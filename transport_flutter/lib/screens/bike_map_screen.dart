@@ -1,6 +1,8 @@
 // bike_map_screen.dart
 // UBike 地圖頁面
 
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -54,7 +56,7 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
     try {
       _userLocation = await _getCurrentLocation();
 
-      if(widget.initialStation != null) {
+      if (widget.initialStation != null) {
         setState(() => _selectStation(widget.initialStation!));
       }
       // 載入站點資料
@@ -120,6 +122,40 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
     }
   }
 
+  LatLng getCenterCoordinate(List<LatLng> coords) {
+    if (coords.isEmpty) return LatLng(0, 0);
+    if (coords.length == 1) return coords.first;
+
+    double x = 0;
+    double y = 0;
+    double z = 0;
+
+    for (var coord in coords) {
+      // 將角度轉換為弧度
+      double lat = coord.latitude * pi / 180;
+      double lon = coord.longitude * pi / 180;
+
+      // 轉換為 3D 笛卡兒座標
+      x += cos(lat) * cos(lon);
+      y += cos(lat) * sin(lon);
+      z += sin(lat);
+    }
+
+    // 計算平均值
+    int total = coords.length;
+    x /= total;
+    y /= total;
+    z /= total;
+
+    // 將平均後的笛卡兒座標轉回經緯度
+    double centralLon = atan2(y, x);
+    double centralHyp = sqrt(x * x + y * y);
+    double centralLat = atan2(z, centralHyp);
+
+    // 轉回角度並回傳
+    return LatLng(centralLat * 180 / pi, centralLon * 180 / pi);
+  }
+
   /// 搜尋地點
   Future<void> _searchLocation() async {
     final keyword = _searchController.text.trim();
@@ -130,27 +166,29 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
         }
       });
       return;
-  }
+    }
 
     setState(() => _isSearching = true);
 
     try {
       _closeStationDetail();
 
-      bool bfind = false;
+      bool find = false;
+      List<LatLng> coords = [];
+
       setState(() {
         for (var station in _stations) {
-          if(station.name.contains(keyword)) {
+          if (station.name.contains(keyword)) {
             station.matchSearch = true;
-            _mapController.move(LatLng(station.lat, station.lng), 20);
-            bfind = true;
+            coords.add(LatLng(station.lat, station.lng));
+            find = true;
           } else {
             station.matchSearch = false;
           }
         }
       });
 
-      if(!bfind) {
+      if (!find) {
         // 顯示搜尋失敗提示
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -158,22 +196,10 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
             duration: const Duration(seconds: 2),
           ),
         );
-      }
-/*
-      final location = await BikeApiService.searchLocation(keyword);
-      if (location != null) {
-        _mapController.move(location, 16);
-        setState(() => _userLocation = location);
       } else {
-        // 顯示搜尋失敗提示
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('找不到 "$keyword" 的位置'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        LatLng center = getCenterCoordinate(coords);
+        _mapController.move(LatLng(center.latitude, center.longitude), 16);
       }
- */
     } finally {
       setState(() => _isSearching = false);
     }
@@ -208,8 +234,10 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _userLocation ?? LatLng(widget.initialStation!.lat, widget.initialStation!.lng),
-              initialZoom: 20,
+              initialCenter: _userLocation ??
+                  LatLng(
+                      widget.initialStation!.lat, widget.initialStation!.lng),
+              initialZoom: 16,
               minZoom: 10,
               maxZoom: 18,
               onTap: (_, __) => _closeStationDetail(),
