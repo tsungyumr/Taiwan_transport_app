@@ -34,34 +34,47 @@ class StationMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: _statusColor,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: const [AppShadows.small],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.pedal_bike,
-              size: 16,
-              color: Colors.white,
-            ),
-            Text(
-              '${station.availableBikes}',
-              style: const TextStyle(
+      child: Stack(children: [
+
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: _statusColor,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: const [AppShadows.small],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.pedal_bike,
+                size: 16,
                 color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
               ),
-            ),
-          ],
+              Text(
+                '${station.availableBikes}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+
+        if (station.matchSearch)
+          Container(
+            margin: EdgeInsets.only(top: 18,left: 32),
+            child:            const Icon(
+              Icons.search,
+              size: 20,
+              color: Colors.amberAccent,
+            ),
+          ),
+      ]),
     );
   }
 }

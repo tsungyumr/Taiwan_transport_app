@@ -30,9 +30,11 @@ class BikeApiService {
       final response = await http.get(uri);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is List) {
-          return data.map((json) => BikeStation.fromJson(json)).toList();
+        final json = jsonDecode(response.body);
+        // 解析後端回傳格式: { "success": true, "data": [...], ... }
+        if (json is Map<String, dynamic> && json['data'] is List) {
+          final dataList = json['data'] as List;
+          return dataList.map((item) => BikeStation.fromJson(item as Map<String, dynamic>)).toList();
         }
         return [];
       } else {
@@ -45,25 +47,50 @@ class BikeApiService {
     }
   }
 
-  /// 取得所有站點（不分城市）
-  static Future<List<BikeStation>> getAllStations() async {
-    try {
-      final response = await http.get(Uri.parse('$_baseUrl/bike/stations'));
+  /// 取得所有站點（支援多城市，預設同時取得 Taipei 和 NewTaipei）
+  static Future<List<BikeStation>> getAllStations({List<String> cities = const ['Taipei', 'NewTaipei']}) async {
+    final allStations = <BikeStation>[];
+    String? errorMessage;
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is List) {
-          return data.map((json) => BikeStation.fromJson(json)).toList();
+    // 並行取得所有指定城市的站點資料
+    final futures = cities.map((city) async {
+      try {
+        final uri = Uri.parse('$_baseUrl/bike/stations').replace(
+          queryParameters: {'city': city},
+        );
+        final response = await http.get(uri);
+
+        if (response.statusCode == 200) {
+          final json = jsonDecode(response.body);
+          // 解析後端回傳格式: { "success": true, "data": [...], "total": ..., "city": ... }
+          if (json is Map<String, dynamic> && json['data'] is List) {
+            final dataList = json['data'] as List;
+            return dataList.map((item) => BikeStation.fromJson(item as Map<String, dynamic>)).toList();
+          }
+        } else {
+          print('取得 $city 站點失敗: ${response.statusCode}');
         }
-        return [];
-      } else {
-        throw Exception('取得站點失敗: ${response.statusCode}');
+      } catch (e) {
+        print('取得 $city 站點錯誤: $e');
+        errorMessage = e.toString();
       }
-    } catch (e) {
-      // 開發時使用模擬資料
-      print('API 錯誤，使用模擬資料: $e');
+      return <BikeStation>[];
+    });
+
+    // 等待所有城市資料載入完成
+    final results = await Future.wait(futures);
+    for (final stations in results) {
+      allStations.addAll(stations);
+    }
+
+    // 如果都沒有資料且發生錯誤，回傳模擬資料
+    if (allStations.isEmpty && errorMessage != null) {
+      print('所有城市 API 錯誤，使用模擬資料');
       return BikeStation.mockStations;
     }
+
+    print('成功載入 ${allStations.length} 個站點');
+    return allStations;
   }
 
   /// 搜尋地點（簡化版，使用預設地點）

@@ -2,12 +2,15 @@
 // UBike 腳踏車主頁面
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import '../models/bike_station.dart';
-import '../services/bike_search_history_service.dart';
+import '../services/bike_api_service.dart';
 import '../ui_theme.dart';
 import '../widgets/bike_station_card.dart';
 import '../widgets/loading_animations.dart';
 import '../widgets/styled_inputs.dart';
+import 'bike_map_screen.dart';
 
 class BikeScreen extends StatefulWidget {
   final bool showAppBar;
@@ -19,104 +22,221 @@ class BikeScreen extends StatefulWidget {
 }
 
 class _BikeScreenState extends State<BikeScreen> {
-  final BikeSearchHistoryService _historyService = BikeSearchHistoryService();
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
   List<BikeStation> _allStations = []; // 所有站點
-  List<BikeStation> _filteredStations = []; // 篩選後的站點
-  List<BikeSearchHistoryItem> _viewHistory = []; // 觀看歷史
-  Map<String, int> _viewCounts = {}; // 站點ID -> 觀看次數
+  List<BikeStation> _filteredStations = []; // 篩選後的站點（顯示用）
   bool _isLoading = false;
   DateTime? _lastUpdateTime;
+
+  // 站點統計資訊
+  int _totalStationCount = 0;
+  final List<String> _cities = ['Taipei', 'NewTaipei'];
+
+  // GPS 位置
+  Position? _currentPosition;
+  bool _isLocationLoading = false;
+  String? _locationError;
 
   @override
   void initState() {
     super.initState();
-    _loadStations(); // 這會自動載入歷史並排序
+    _initializeScreen();
+  }
+
+  /// 初始化畫面：先取得 GPS 位置，再載入站點
+  Future<void> _initializeScreen() async {
+    await _getCurrentLocation();
+    await _loadStations();
+  }
+
+  /// 取得當前 GPS 位置
+  Future<void> _getCurrentLocation() async {
+    setState(() => _isLocationLoading = true);
+
+    try {
+      // 檢查位置服務是否啟用
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _locationError = '請開啟 GPS 定位服務';
+          _isLocationLoading = false;
+        });
+        return;
+      }
+
+      // 檢查權限
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _locationError = '需要位置權限才能顯示附近站點';
+            _isLocationLoading = false;
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _locationError = '位置權限被拒絕，請在設定中開啟';
+          _isLocationLoading = false;
+        });
+        return;
+      }
+
+      // 取得當前位置
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() {
+        _currentPosition = position;
+        _locationError = null;
+        _isLocationLoading = false;
+      });
+
+      print('取得 GPS 位置: ${position.latitude}, ${position.longitude}');
+    } catch (e) {
+      setState(() {
+        _locationError = '取得位置失敗: $e';
+        _isLocationLoading = false;
+      });
+      print('取得 GPS 位置失敗: $e');
+    }
+  }
+
+  /// 計算兩點間的距離（公里）
+  double _calculateDistance(
+      double lat1, double lon1, double lat2, double lon2) {
+    const Distance distance = Distance();
+    return distance.as(
+      LengthUnit.Kilometer,
+      LatLng(lat1, lon1),
+      LatLng(lat2, lon2),
+    );
+  }
+
+  /// 根據距離排序並只顯示最近的 N 個站點
+  void _sortStationsByDistance({int limit = 5}) {
+    if (_currentPosition == null) return;
+
+    // 計算每個站點與當前位置的距離
+    final stationsWithDistance = _allStations.map((station) {
+      final dist = _calculateDistance(
+        _currentPosition!.latitude,
+        _currentPosition!.longitude,
+        station.lat,
+        station.lng,
+      );
+      return station.copyWithDistance(dist);
+    }).toList();
+
+    // 按距離排序（近的在前）
+    stationsWithDistance.sort((a, b) {
+      final distA = a.distance ?? double.infinity;
+      final distB = b.distance ?? double.infinity;
+      return distA.compareTo(distB);
+    });
+
+    // 只取前 N 個
+    setState(() {
+      _filteredStations = stationsWithDistance.take(limit).toList();
+    });
   }
 
   /// 載入所有 UBike 站點
   Future<void> _loadStations() async {
     setState(() => _isLoading = true);
 
-    // 使用模擬資料（未來可替換為真實 API）
-    final stations = BikeStation.mockStations;
+    try {
+      // 呼叫真實 API 取得站點資料
+      final stations = await BikeApiService.getAllStations();
 
-    // 模擬載入延遲
-    await Future.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
 
-    if (!mounted) return;
+      setState(() {
+        _allStations = stations;
+        _totalStationCount = stations.length;
+        _isLoading = false;
+        _lastUpdateTime = DateTime.now();
+      });
 
-    setState(() {
-      _allStations = stations;
-      _filteredStations = stations;
-      _isLoading = false;
-      _lastUpdateTime = DateTime.now();
-    });
+      // 如果有 GPS 位置，自動顯示最近的 5 個站點
+      if (_currentPosition != null) {
+        _sortStationsByDistance(limit: 5);
+      } else {
+        // 沒有 GPS 時顯示所有站點
+        setState(() {
+          _filteredStations = stations;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
 
-    // 載入觀看歷史後排序（讓常看的站點排在前面）
-    await _loadViewHistory();
-  }
+      setState(() {
+        _isLoading = false;
+      });
 
-  /// 載入觀看歷史
-  Future<void> _loadViewHistory() async {
-    final history = await _historyService.getSearchHistory();
-
-    // 建立觀看次數對照表
-    final viewCounts = <String, int>{};
-    for (final item in history) {
-      viewCounts[item.stationId] = item.searchCount;
+      // 顯示錯誤提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('載入站點失敗: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: '重試',
+            onPressed: _loadStations,
+          ),
+        ),
+      );
     }
-
-    if (!mounted) return;
-
-    setState(() {
-      _viewHistory = history;
-      _viewCounts = viewCounts;
-      // 根據觀看次數排序（常看的排在最前面）
-      _sortStationsByPopularity();
-    });
   }
 
   /// 搜尋/篩選站點
   void _filterStations(String query) {
     setState(() {
       if (query.isEmpty) {
-        _filteredStations = _allStations;
+        // 搜尋框清空時，恢復顯示最近的 5 個站點
+        if (_currentPosition != null) {
+          _sortStationsByDistance(limit: 5);
+        } else {
+          _filteredStations = _allStations;
+        }
       } else {
+        // 有搜尋關鍵字時，顯示所有符合的站點
         _filteredStations = _allStations.where((station) {
           return station.name.toLowerCase().contains(query.toLowerCase()) ||
-                 station.address.toLowerCase().contains(query.toLowerCase());
+              station.address.toLowerCase().contains(query.toLowerCase());
         }).toList();
+        // 按距離排序（如果有的話）
+        if (_currentPosition != null) {
+          _filteredStations.sort((a, b) {
+            final distA = a.distance ?? double.infinity;
+            final distB = b.distance ?? double.infinity;
+            return distA.compareTo(distB);
+          });
+        }
       }
-      // 根據觀看次數排序（熱門的在前）
-      _sortStationsByPopularity();
     });
   }
 
-  /// 根據熱門程度排序站點
+  /// 根據熱門程度排序站點（已棄用，改為按距離排序）
   void _sortStationsByPopularity() {
-    _filteredStations.sort((a, b) {
-      final countA = _viewCounts[a.stationId] ?? 0;
-      final countB = _viewCounts[b.stationId] ?? 0;
-      // 先按觀看次數降序排序
-      if (countA != countB) {
-        return countB.compareTo(countA); // 次數高的在前
-      }
-      // 次數相同時，按距離排序（近的在前）
-      final distA = a.distance ?? double.infinity;
-      final distB = b.distance ?? double.infinity;
-      return distA.compareTo(distB);
-    });
+    // 現在主要按距離排序
+    if (_currentPosition != null) {
+      _sortStationsByDistance(limit: 5);
+    }
   }
 
   /// 選擇站點（點擊觀看）
   Future<void> _selectStation(BikeStation station) async {
-    // 記錄觀看歷史
-    await _historyService.recordView(station);
-
     if (!mounted) return;
+
+    // 關閉任何已開啟的 bottom sheet（切換站點時）
+    _closeBottomSheet();
 
     // 顯示站點詳情（暫時用 SnackBar，未來可導航到詳情頁）
     ScaffoldMessenger.of(context).showSnackBar(
@@ -125,7 +245,13 @@ class _BikeScreenState extends State<BikeScreen> {
           children: [
             Icon(Icons.pedal_bike, color: station.statusColor),
             const SizedBox(width: AppSpacing.sm),
-            Text('${station.name} - ${station.statusText}'),
+            Expanded(
+              child: Text(
+                '${station.name} - ${station.statusText}',
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
           ],
         ),
         behavior: SnackBarBehavior.floating,
@@ -139,138 +265,25 @@ class _BikeScreenState extends State<BikeScreen> {
         ),
       ),
     );
-
-    // 重新載入歷史並排序
-    if (mounted) {
-      await _loadViewHistory();
-    }
   }
 
   /// 開啟導航
   Future<void> _openNavigation(BikeStation station) async {
-    // 記錄觀看歷史
-    await _historyService.recordView(station);
+    if (!mounted) return;
 
     if (!mounted) return;
 
     // 顯示導航選項
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '導航到 ${station.name}',
-              style: AppTextStyles.titleLarge,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            ListTile(
-              leading: const Icon(Icons.map, color: Colors.blue),
-              title: const Text('Google Maps'),
-              subtitle: const Text('使用 Google Maps 導航'),
-              onTap: () {
-                Navigator.pop(context);
-                _launchGoogleMaps(station);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.apple, color: Colors.black),
-              title: const Text('Apple Maps'),
-              subtitle: const Text('使用 Apple Maps 導航 (iOS)'),
-              onTap: () {
-                Navigator.pop(context);
-                _launchAppleMaps(station);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => BikeMapScreen(initialStation: station),
+    ));
   }
 
-  /// 啟動 Google Maps
-  void _launchGoogleMaps(BikeStation station) {
-    // 實際應用中需要使用 url_launcher
-    // final url = 'https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}&travelmode=walking';
-    // launchUrl(Uri.parse(url));
-    debugPrint('導航到 ${station.name}: ${station.lat}, ${station.lng}');
-  }
-
-  /// 啟動 Apple Maps
-  void _launchAppleMaps(BikeStation station) {
-    // 實際應用中需要使用 url_launcher
-    // final url = 'http://maps.apple.com/?daddr=${station.lat},${station.lng}&dirflg=w';
-    // launchUrl(Uri.parse(url));
-    debugPrint('導航到 ${station.name}: ${station.lat}, ${station.lng}');
-  }
-
-  /// 清除所有觀看歷史
-  Future<void> _clearAllHistory() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.large),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.delete_outline, color: AppColors.error),
-            const SizedBox(width: AppSpacing.sm),
-            const Text('清除觀看歷史'),
-          ],
-        ),
-        content: const Text('確定要清除所有站點觀看記錄嗎？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('清除'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      await _historyService.clearHistory();
-      await _loadViewHistory();
-      // 重新排序（恢復預設排序）
-      setState(() {
-        _sortStationsByPopularity();
-      });
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: AppSpacing.sm),
-              const Text('觀看歷史已清除'),
-            ],
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.small),
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+  /// 關閉 Bottom Sheet
+  void _closeBottomSheet() {
+    if (mounted) {
+      ScaffoldMessenger.of(context).clearSnackBars();
     }
-  }
-
-  /// 獲取站點的觀看次數
-  int _getViewCount(String stationId) {
-    return _viewCounts[stationId] ?? 0;
   }
 
   @override
@@ -283,7 +296,7 @@ class _BikeScreenState extends State<BikeScreen> {
               foregroundColor: Colors.white,
               elevation: 0,
               flexibleSpace: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
                       BikeColors.primary,
@@ -294,58 +307,169 @@ class _BikeScreenState extends State<BikeScreen> {
                   ),
                 ),
               ),
-              actions: [
-                // 清除歷史按鈕
-                if (_viewHistory.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    tooltip: '清除觀看歷史',
-                    onPressed: _clearAllHistory,
-                  ),
-              ],
             )
           : null,
-      body: Column(
-        children: [
-          // 搜尋欄
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+      body: InkWell(
+        onTap: () {
+          _closeBottomSheet();
+        },
+        child: Column(
+          children: [
+            // 搜尋欄與位置資訊
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 搜尋欄
+                  SearchTextField(
+                    controller: _searchController,
+                    hintText: '搜尋站點或地點...',
+                    onChanged: _filterStations,
+                    onClear: () {
+                      _searchController.clear();
+                      _filterStations('');
+                    },
+                    onSearch: () => _filterStations(_searchController.text),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  // 位置資訊列
+                  _buildLocationInfo(),
+                ],
+              ),
             ),
-            child: SearchTextField(
-              controller: _searchController,
-              hintText: '搜尋站點或地點...',
-              onChanged: _filterStations,
-              onClear: () {
-                _searchController.clear();
-                _filterStations('');
-              },
-              onSearch: () => _filterStations(_searchController.text),
+            // 統計資訊列
+            if (_totalStationCount > 0)
+              StationStatsBar(
+                totalStations: _totalStationCount,
+                cities: _cities,
+                lastUpdateTime: _lastUpdateTime,
+                onRefresh: _initializeScreen,
+              ),
+            // 站點列表
+            Expanded(
+              child: _isLoading
+                  ? const SkeletonLoading(itemCount: 8)
+                  : _buildStationsList(),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: IconButton(
+          color: Colors.red,
+          iconSize: 32,
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => const BikeMapScreen(),
+            ));
+          },
+          icon: const Icon(Icons.map)),
+    );
+  }
+
+  /// 建立位置資訊顯示
+  Widget _buildLocationInfo() {
+    if (_isLocationLoading) {
+      return Row(
+        children: [
+          const SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: BikeColors.primary,
             ),
           ),
-          // 統計資訊列
-          if (_viewHistory.isNotEmpty)
-            StationStatsBar(
-              stationCount: _viewHistory.length,
-              lastUpdateTime: _lastUpdateTime,
-              onRefresh: _loadStations,
+          const SizedBox(width: 8),
+          Text(
+            '取得位置中...',
+            style: AppTextStyles.labelSmall.copyWith(
+              color: AppColors.onSurfaceLight,
             ),
-          // 站點列表
-          Expanded(
-            child: _isLoading
-                ? const SkeletonLoading(itemCount: 8)
-                : _buildStationsList(),
           ),
         ],
-      ),
+      );
+    }
+
+    if (_locationError != null) {
+      return Row(
+        children: [
+          const Icon(
+            Icons.location_off,
+            size: 14,
+            color: AppColors.error,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _locationError!,
+              style: AppTextStyles.labelSmall.copyWith(
+                color: AppColors.error,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          TextButton(
+            onPressed: _getCurrentLocation,
+            child: const Text('重試'),
+          ),
+        ],
+      );
+    }
+
+    if (_currentPosition != null) {
+      return Row(
+        children: [
+          const Icon(
+            Icons.location_on,
+            size: 14,
+            color: BikeColors.primary,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _searchController.text.isEmpty
+                  ? '顯示距離您最近的 5 個站點'
+                  : '顯示符合搜尋條件的站點（依距離排序）',
+              style: AppTextStyles.labelSmall.copyWith(
+                color: AppColors.onSurfaceLight,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          TextButton(
+            onPressed: _getCurrentLocation,
+            child: const Text('更新位置'),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        const Icon(
+          Icons.location_off,
+          size: 14,
+          color: AppColors.onSurfaceLight,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '無法取得位置',
+          style: AppTextStyles.labelSmall.copyWith(
+            color: AppColors.onSurfaceLight,
+          ),
+        ),
+      ],
     );
   }
 
@@ -353,19 +477,25 @@ class _BikeScreenState extends State<BikeScreen> {
   Widget _buildStationsList() {
     if (_filteredStations.isEmpty) {
       return BikeEmptyStateCard(
-        searchQuery: _searchController.text,
+        searchQuery: _searchController.text.isNotEmpty
+            ? _searchController.text
+            : (_locationError != null && _allStations.isEmpty
+                ? 'location_error'
+                : null),
         onClearSearch: _searchController.text.isNotEmpty
             ? () {
                 _searchController.clear();
                 _filterStations('');
               }
             : null,
-        onRetry: _searchController.text.isEmpty ? _loadStations : null,
+        onRetry: _searchController.text.isEmpty && _locationError != null
+            ? _getCurrentLocation
+            : (_searchController.text.isEmpty ? _loadStations : null),
       );
     }
 
     return RefreshIndicator(
-      onRefresh: _loadStations,
+      onRefresh: _initializeScreen,
       color: BikeColors.primary,
       child: ListView.builder(
         controller: _scrollController,
@@ -373,13 +503,11 @@ class _BikeScreenState extends State<BikeScreen> {
         itemCount: _filteredStations.length,
         itemBuilder: (context, index) {
           final station = _filteredStations[index];
-          final viewCount = _getViewCount(station.stationId);
 
           return FadeInAnimation(
             delay: Duration(milliseconds: (index % 10) * 30),
             child: BikeStationCard(
               station: station,
-              viewCount: viewCount,
               onTap: () => _selectStation(station),
               onNavigate: () => _openNavigation(station),
             ),

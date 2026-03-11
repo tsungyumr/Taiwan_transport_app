@@ -45,5 +45,12 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- 位置權限 -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>需要您的位置資訊來顯示附近的 UBike 站點</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>需要您的位置資訊來顯示附近的 UBike 站點</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>需要您的位置資訊來顯示附近的 UBike 站點</string>
 </dict>
 </plist>

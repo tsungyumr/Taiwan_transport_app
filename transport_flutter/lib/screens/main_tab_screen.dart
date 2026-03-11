@@ -5,6 +5,7 @@ import '../main.dart';
 import '../widgets/animated_card.dart';
 import '../widgets/loading_animations.dart';
 import '../ui_theme.dart';
+import 'bike_map_screen.dart';
 import 'bus_screen.dart';
 import 'railway_screen.dart';
 import 'thsr_screen.dart';
@@ -23,54 +24,6 @@ class BusTabContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 20),
-            // 標題區塊帶有動畫
-            FadeInAnimation(
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.primary.withOpacity(0.1),
-                          AppColors.secondary.withOpacity(0.05),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(AppRadius.large),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.emoji_transportation,
-                          size: 48,
-                          color: AppColors.primaryDark,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Text(
-                          '歡迎使用交通萬事通',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: AppColors.onBackground,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Text(
-                          '查詢即時公車、台鐵、高鐵時刻表',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
             // 交通工具選擇卡片
             FadeInAnimation(
               delay: const Duration(milliseconds: 100),
@@ -105,10 +58,10 @@ class _MainTabScreenState extends State<MainTabScreen>
 
   // 定義每個 tab 的主題色 - 使用黃色系內的協調色
   final List<Color> _tabColors = [
-    TransportColors.bus,      // 公車：草綠色（與黃色協調）
-    TransportColors.railway,  // 火車：暖橘色（與黃色協調）
-    TransportColors.thsr,     // 高鐵：珊瑚橘（與黃色協調）
-    const Color(0xFF2E7D32),  // 腳踏車：環保綠色
+    TransportColors.bus, // 公車：草綠色（與黃色協調）
+    TransportColors.railway, // 火車：暖橘色（與黃色協調）
+    TransportColors.thsr, // 高鐵：珊瑚橘（與黃色協調）
+    const Color(0xFF2E7D32), // 腳踏車：環保綠色
   ];
 
   @override
@@ -182,7 +135,7 @@ class _MainTabScreenState extends State<MainTabScreen>
             Icons.directions_bus,
             Icons.train,
             Icons.speed,
-            Icons.pedal_bike,
+            Icons.directions_bike,
           ],
           badges: const [null, null, null, null],
           tabSize: 50,
@@ -252,6 +205,33 @@ class BikeTabView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 使用 BikeScreen，隱藏其 AppBar
-    return const BikeScreen(showAppBar: false);
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 20),
+            // 交通工具選擇卡片
+            FadeInAnimation(
+              delay: const Duration(milliseconds: 100),
+              child: TransportCard(
+                title: 'UBike腳踏車',
+                subtitle: '查詢台北市、新北市UBike腳踏車',
+                icon: Icons.directions_bike,
+                color: TransportColors.bike,
+                onTap: () => Navigator.push(
+                  context,
+                  SlidePageRoute(
+                      builder: (_) => const BikeScreen(showAppBar: true)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    //return const BikeMapScreen();
+    //return const BikeScreen(showAppBar: false);
   }
 }

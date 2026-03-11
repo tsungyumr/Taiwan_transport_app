@@ -23,6 +23,7 @@ class BikeStation {
   final int emptySlots;        // 空位數
   final DateTime updateTime;   // 更新時間
   final double? distance;      // 與用戶距離（公里）
+  bool matchSearch = false;       // 是否正在被搜尋
 
   BikeStation({
     required this.stationId,
@@ -99,18 +100,21 @@ class BikeStation {
     );
   }
 
-  /// 從 JSON 解析
+  /// 從 JSON 解析（支援後端 API 回傳格式）
   factory BikeStation.fromJson(Map<String, dynamic> json) {
+    // 處理後端 API 回傳格式
+    // 後端欄位: station_uid, station_id, name, latitude, longitude, capacity,
+    //          available_rent_bikes, available_return_bikes, service_status
     return BikeStation(
-      stationId: json['station_id'] ?? '',
+      stationId: json['station_uid'] ?? json['station_id'] ?? '',
       name: json['name'] ?? '',
       address: json['address'] ?? '',
-      lat: (json['lat'] ?? 0).toDouble(),
-      lng: (json['lng'] ?? 0).toDouble(),
-      totalSlots: json['total_slots'] ?? 0,
-      availableBikes: json['available_bikes'] ?? 0,
-      emptySlots: json['empty_slots'] ?? 0,
-      updateTime: DateTime.tryParse(json['update_time'] ?? '') ?? DateTime.now(),
+      lat: (json['latitude'] ?? json['lat'] ?? 0).toDouble(),
+      lng: (json['longitude'] ?? json['lng'] ?? 0).toDouble(),
+      totalSlots: json['capacity'] ?? json['total_slots'] ?? 0,
+      availableBikes: json['available_rent_bikes'] ?? json['available_bikes'] ?? 0,
+      emptySlots: json['available_return_bikes'] ?? json['empty_slots'] ?? 0,
+      updateTime: DateTime.tryParse(json['availability_update_time'] ?? json['station_update_time'] ?? json['update_time'] ?? '') ?? DateTime.now(),
       distance: json['distance']?.toDouble(),
     );
   }

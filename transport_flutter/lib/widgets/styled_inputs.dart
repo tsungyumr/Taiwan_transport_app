@@ -204,8 +204,9 @@ class StyledDropdown<T> extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.medium),
         boxShadow: const [AppShadows.small],
       ),
+      margin: const EdgeInsets.only(top: 5),
       child: DropdownButtonFormField<T>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           labelText: labelText,
           labelStyle: AppTextStyles.bodyMedium.copyWith(
@@ -227,12 +228,13 @@ class StyledDropdown<T> extends StatelessWidget {
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xs,
-            vertical: AppSpacing.xs,
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.sm,
           ),
         ),
         dropdownColor: Colors.white,
-        icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary, size: 20),
+        icon: const Icon(Icons.arrow_drop_down,
+            color: AppColors.primary, size: 20),
         items: items,
         onChanged: onChanged,
         hint: hintText != null ? Text(hintText!) : null,
@@ -447,7 +449,8 @@ class SegmentedControl extends StatelessWidget {
                     color: isSelected
                         ? AppColors.primaryDark
                         : AppColors.onSurfaceLight,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight:
+                        isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
               ),
@@ -492,7 +495,8 @@ class ToggleButtonGroup extends StatelessWidget {
               onPressed: () => onChanged(index),
               style: ElevatedButton.styleFrom(
                 backgroundColor: isSelected ? activeColor : Colors.white,
-                foregroundColor: isSelected ? Colors.white : AppColors.onSurfaceLight,
+                foregroundColor:
+                    isSelected ? Colors.white : AppColors.onSurfaceLight,
                 elevation: isSelected ? 2 : 0,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 shape: RoundedRectangleBorder(

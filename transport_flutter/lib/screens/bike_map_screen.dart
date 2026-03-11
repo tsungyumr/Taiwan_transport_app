@@ -52,17 +52,11 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 如果有初始站點，先定位到該站點
-      if (widget.initialStation != null) {
-        _userLocation = LatLng(
-          widget.initialStation!.lat,
-          widget.initialStation!.lng,
-        );
-      } else {
-        // 否則取得用戶位置
-        _userLocation = await _getCurrentLocation();
-      }
+      _userLocation = await _getCurrentLocation();
 
+      if(widget.initialStation != null) {
+        setState(() => _selectStation(widget.initialStation!));
+      }
       // 載入站點資料
       await _loadStations();
     } finally {
@@ -122,18 +116,50 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
     final location = await _getCurrentLocation();
     if (location != null) {
       setState(() => _userLocation = location);
-      _mapController.move(location, 16);
+      _mapController.move(location, 25);
     }
   }
 
   /// 搜尋地點
   Future<void> _searchLocation() async {
     final keyword = _searchController.text.trim();
-    if (keyword.isEmpty) return;
+    if (keyword.isEmpty) {
+      setState(() {
+        for (var station in _stations) {
+          station.matchSearch = false;
+        }
+      });
+      return;
+  }
 
     setState(() => _isSearching = true);
 
     try {
+      _closeStationDetail();
+
+      bool bfind = false;
+      setState(() {
+        for (var station in _stations) {
+          if(station.name.contains(keyword)) {
+            station.matchSearch = true;
+            _mapController.move(LatLng(station.lat, station.lng), 20);
+            bfind = true;
+          } else {
+            station.matchSearch = false;
+          }
+        }
+      });
+
+      if(!bfind) {
+        // 顯示搜尋失敗提示
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('找不到 "$keyword" 的位置'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+/*
       final location = await BikeApiService.searchLocation(keyword);
       if (location != null) {
         _mapController.move(location, 16);
@@ -147,6 +173,7 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
           ),
         );
       }
+ */
     } finally {
       setState(() => _isSearching = false);
     }
@@ -181,8 +208,8 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _userLocation ?? const LatLng(25.0330, 121.5654),
-              initialZoom: 14,
+              initialCenter: _userLocation ?? LatLng(widget.initialStation!.lat, widget.initialStation!.lng),
+              initialZoom: 20,
               minZoom: 10,
               maxZoom: 18,
               onTap: (_, __) => _closeStationDetail(),
@@ -331,7 +358,7 @@ class _SearchBar extends StatelessWidget {
             ),
           ),
           if (isLoading)
-            SizedBox(
+            const SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(

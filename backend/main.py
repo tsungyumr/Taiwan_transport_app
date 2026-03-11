@@ -2454,6 +2454,9 @@ async def get_bike_cache_status():
     except Exception as e:
         logger.error(f"取得快取狀態失敗: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/bike/stations/{station_uid}", response_model=BikeStationDetailResponse)
 async def get_bike_station_detail(
     station_uid: str,
     city: str = Query(..., description="縣市代碼")
