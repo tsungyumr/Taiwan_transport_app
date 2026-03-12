@@ -50,12 +50,13 @@ class ApiService {
 
   // ----- 台鐵 API -----
 
-  Future<List<TrainStation>> getRailwayStations() async {
+  Future<List<TrainStation>> getRailwayStations({String? lang}) async {
     try {
+      final queryParams = lang != null ? {'lang': lang} : null;
       final response = await _client.get(
-        Uri.parse('$baseUrl/railway/stations'),
+        Uri.parse('$baseUrl/railway/stations').replace(queryParameters: queryParams),
       );
-      
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => TrainStation.fromJson(json)).toList();
@@ -72,6 +73,7 @@ class ApiService {
     required String toStation,
     String? date,
     String? time,
+    String? lang,
   }) async {
     try {
       final queryParams = <String, String>{
@@ -81,6 +83,7 @@ class ApiService {
 
       if (date != null) queryParams['date'] = date;
       if (time != null) queryParams['time'] = time;
+      if (lang != null) queryParams['lang'] = lang;
 
       final response = await _client.get(
         Uri.parse('$baseUrl/railway/timetable').replace(queryParameters: queryParams),
@@ -99,12 +102,13 @@ class ApiService {
 
   // ----- 高鐵 API -----
 
-  Future<List<TrainStation>> getTHSRStations() async {
+  Future<List<TrainStation>> getTHSRStations({String? lang}) async {
     try {
+      final queryParams = lang != null ? {'lang': lang} : null;
       final response = await _client.get(
-        Uri.parse('$baseUrl/thsr/stations'),
+        Uri.parse('$baseUrl/thsr/stations').replace(queryParameters: queryParams),
       );
-      
+
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => TrainStation.fromJson(json)).toList();
@@ -122,6 +126,7 @@ class ApiService {
     String? date,
     String? time,
     String? endTime,
+    String? lang,
   }) async {
     try {
       final queryParams = <String, String>{
@@ -132,6 +137,7 @@ class ApiService {
       if (date != null) queryParams['date'] = date;
       if (time != null) queryParams['time'] = time;
       if (endTime != null) queryParams['end_time'] = endTime;
+      if (lang != null) queryParams['lang'] = lang;
 
       final response = await _client.get(
         Uri.parse('$baseUrl/thsr/timetable').replace(queryParameters: queryParams),

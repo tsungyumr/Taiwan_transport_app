@@ -1,0 +1,713 @@
+{
+  "@@locale": "en",
+  "@@author": "Taiwan Transport App",
+  "appTitle": "Transport Guide",
+  "@appTitle": {
+    "description": "App name"
+  },
+
+  "tabBus": "Bus",
+  "@tabBus": {
+    "description": "Bus tab label"
+  },
+  "tabRailway": "Train",
+  "@tabRailway": {
+    "description": "Railway tab label"
+  },
+  "tabThsr": "HSR",
+  "@tabThsr": {
+    "description": "THSR tab label"
+  },
+  "tabBike": "Bike",
+  "@tabBike": {
+    "description": "Bike tab label"
+  },
+
+  "busTitle": "Taipei Bus",
+  "@busTitle": {
+    "description": "Bus page title"
+  },
+  "busSearchHint": "Search bus routes (e.g., 307, Blue 1)",
+  "@busSearchHint": {
+    "description": "Bus search hint"
+  },
+  "busSubtitle": "Search Taipei and New Taipei City bus routes",
+  "@busSubtitle": {
+    "description": "Bus feature subtitle"
+  },
+  "busClearHistory": "Clear View History",
+  "@busClearHistory": {
+    "description": "Clear view history button"
+  },
+  "busClearHistoryConfirmTitle": "Clear View History",
+  "@busClearHistoryConfirmTitle": {
+    "description": "Clear history dialog title"
+  },
+  "busClearHistoryConfirmContent": "Are you sure you want to clear all route view records?",
+  "@busClearHistoryConfirmContent": {
+    "description": "Clear history dialog content"
+  },
+  "busHistoryCleared": "View history cleared",
+  "@busHistoryCleared": {
+    "description": "History cleared success message"
+  },
+  "busViewCount": "{count} frequently viewed routes recorded",
+  "@busViewCount": {
+    "description": "View count statistics text",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "busColorIndicator": "Darker color = More frequently viewed",
+  "@busColorIndicator": {
+    "description": "Color indicator description"
+  },
+  "busNoRoutesFound": "No routes found",
+  "@busNoRoutesFound": {
+    "description": "No routes found message"
+  },
+  "busNoRoutesEmpty": "No bus route data available",
+  "@busNoRoutesEmpty": {
+    "description": "No route data message"
+  },
+  "busNoRoutesSearch": "No routes matching \"{query}\"",
+  "@busNoRoutesSearch": {
+    "description": "Search no results message",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "busClearSearch": "Clear Search",
+  "@busClearSearch": {
+    "description": "Clear search button"
+  },
+  "busReload": "Reload",
+  "@busReload": {
+    "description": "Reload button"
+  },
+  "busTooltipClearHistory": "Clear view history",
+  "@busTooltipClearHistory": {
+    "description": "Clear history button tooltip"
+  },
+
+  "railwayTitle": "TRA Timetable",
+  "@railwayTitle": {
+    "description": "Railway page title"
+  },
+  "railwayFromCity": "Departure City",
+  "@railwayFromCity": {
+    "description": "Departure city label"
+  },
+  "railwayFromStation": "From Station",
+  "@railwayFromStation": {
+    "description": "From station label"
+  },
+  "railwayToCity": "Arrival City",
+  "@railwayToCity": {
+    "description": "Arrival city label"
+  },
+  "railwayToStation": "To Station",
+  "@railwayToStation": {
+    "description": "To station label"
+  },
+  "railwayAllCities": "All Cities",
+  "@railwayAllCities": {
+    "description": "All cities option"
+  },
+  "railwaySelectFromStation": "Please select departure station",
+  "@railwaySelectFromStation": {
+    "description": "Select from station hint"
+  },
+  "railwaySelectToStation": "Please select arrival station",
+  "@railwaySelectToStation": {
+    "description": "Select to station hint"
+  },
+  "railwayToday": "Today",
+  "@railwayToday": {
+    "description": "Today option"
+  },
+  "railwayCustomTime": "Custom Time",
+  "@railwayCustomTime": {
+    "description": "Custom time option"
+  },
+  "railwayDepartureDate": "Departure Date",
+  "@railwayDepartureDate": {
+    "description": "Departure date label"
+  },
+  "railwayTimeRange": "Time Range",
+  "@railwayTimeRange": {
+    "description": "Time range label"
+  },
+  "railwayStart": "Start",
+  "@railwayStart": {
+    "description": "Start time label"
+  },
+  "railwayEnd": "End",
+  "@railwayEnd": {
+    "description": "End time label"
+  },
+  "railwayTrainTypeFilter": "Train Type",
+  "@railwayTrainTypeFilter": {
+    "description": "Train type filter label"
+  },
+  "railwayTrainTypeAll": "All",
+  "@railwayTrainTypeAll": {
+    "description": "All train types"
+  },
+  "railwayTrainTypeExpress": "Tze-Chiang",
+  "@railwayTrainTypeExpress": {
+    "description": "Tze-Chiang train type"
+  },
+  "railwayTrainTypeChuKuang": "Chu-Kuang",
+  "@railwayTrainTypeChuKuang": {
+    "description": "Chu-Kuang train type"
+  },
+  "railwayTrainTypeLocal": "Local",
+  "@railwayTrainTypeLocal": {
+    "description": "Local train type"
+  },
+  "railwayTrainTypeLocalFast": "Local Express",
+  "@railwayTrainTypeLocalFast": {
+    "description": "Local express train type"
+  },
+  "railwayTrainTypeTaroko": "Taroko",
+  "@railwayTrainTypeTaroko": {
+    "description": "Taroko train type"
+  },
+  "railwayTrainTypePuyuma": "Puyuma",
+  "@railwayTrainTypePuyuma": {
+    "description": "Puyuma train type"
+  },
+  "railwaySearchButton": "Search Timetable",
+  "@railwaySearchButton": {
+    "description": "Search timetable button"
+  },
+  "railwayTrainsFound": "{count} trains found",
+  "@railwayTrainsFound": {
+    "description": "Trains found statistics",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "railwayEmptyTitle": "Select stations to search",
+  "@railwayEmptyTitle": {
+    "description": "Empty state title"
+  },
+  "railwayEmptySubtitle": "Choose departure and arrival stations to view TRA schedules",
+  "@railwayEmptySubtitle": {
+    "description": "Empty state subtitle"
+  },
+  "railwaySelectStationsError": "Please select departure and arrival stations",
+  "@railwaySelectStationsError": {
+    "description": "Select stations error"
+  },
+  "railwaySearchConditions": "Search Conditions",
+  "@railwaySearchConditions": {
+    "description": "Search conditions title"
+  },
+  "railwayAllDay": "All Day",
+  "@railwayAllDay": {
+    "description": "All day time range"
+  },
+
+  "thsrTitle": "Taiwan HSR",
+  "@thsrTitle": {
+    "description": "THSR page title"
+  },
+  "thsrSearchButton": "Search Timetable",
+  "@thsrSearchButton": {
+    "description": "Search timetable button"
+  },
+  "thsrTrainsFound": "{count} trains found",
+  "@thsrTrainsFound": {
+    "description": "Trains found statistics",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "thsrEmptyTitle": "Select stations to search",
+  "@thsrEmptyTitle": {
+    "description": "Empty state title"
+  },
+  "thsrEmptySubtitle": "Choose departure and arrival stations to view HSR schedules",
+  "@thsrEmptySubtitle": {
+    "description": "Empty state subtitle"
+  },
+  "thsrSelectStationsError": "Please select departure and arrival stations",
+  "@thsrSelectStationsError": {
+    "description": "Select stations error"
+  },
+  "thsrSeatBusiness": "Business",
+  "@thsrSeatBusiness": {
+    "description": "Business class seat"
+  },
+  "thsrSeatStandard": "Standard",
+  "@thsrSeatStandard": {
+    "description": "Standard class seat"
+  },
+  "thsrSeatFree": "Non-Reserved",
+  "@thsrSeatFree": {
+    "description": "Non-reserved seat"
+  },
+
+  "bikeTitle": "UBike",
+  "@bikeTitle": {
+    "description": "Bike page title"
+  },
+  "bikeSubtitle": "Search Taipei and New Taipei City UBike stations",
+  "@bikeSubtitle": {
+    "description": "Bike feature subtitle"
+  },
+  "bikeSearchHint": "Search stations or locations...",
+  "@bikeSearchHint": {
+    "description": "Bike search hint"
+  },
+  "bikeGettingLocation": "Getting location...",
+  "@bikeGettingLocation": {
+    "description": "Getting location message"
+  },
+  "bikeGpsDisabled": "Please enable GPS location service",
+  "@bikeGpsDisabled": {
+    "description": "GPS disabled message"
+  },
+  "bikePermissionDenied": "Location permission required to show nearby stations",
+  "@bikePermissionDenied": {
+    "description": "Location permission denied message"
+  },
+  "bikePermissionDeniedForever": "Location permission denied. Please enable in settings",
+  "@bikePermissionDeniedForever": {
+    "description": "Location permission permanently denied message"
+  },
+  "bikeLocationFailed": "Unable to get location",
+  "@bikeLocationFailed": {
+    "description": "Unable to get location message"
+  },
+  "bikeShowNearby": "Showing 5 nearest stations to you",
+  "@bikeShowNearby": {
+    "description": "Show nearby stations message"
+  },
+  "bikeShowSearchResults": "Showing matching stations (sorted by distance)",
+  "@bikeShowSearchResults": {
+    "description": "Show search results message"
+  },
+  "bikeRetry": "Retry",
+  "@bikeRetry": {
+    "description": "Retry button"
+  },
+  "bikeUpdateLocation": "Update Location",
+  "@bikeUpdateLocation": {
+    "description": "Update location button"
+  },
+  "bikeNavigate": "Navigate",
+  "@bikeNavigate": {
+    "description": "Navigate button"
+  },
+  "bikeLoadFailed": "Failed to load stations",
+  "@bikeLoadFailed": {
+    "description": "Load stations failed message"
+  },
+
+  "aiPlanTitle": "AI Trip Planning",
+  "@aiPlanTitle": {
+    "description": "AI planning feature title"
+  },
+  "aiPlanAnalyzing": "Analyzing nearby transport stations...",
+  "@aiPlanAnalyzing": {
+    "description": "AI analyzing message"
+  },
+  "aiPlanFailed": "Planning failed",
+  "@aiPlanFailed": {
+    "description": "Planning failed message"
+  },
+  "aiPlanErrorMessage": "Planning failed: {error}\n\nPlease check your network connection and try again.",
+  "@aiPlanErrorMessage": {
+    "description": "Planning error message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "gameSpaceTitle": "Game Space",
+  "@gameSpaceTitle": {
+    "description": "Game space feature title"
+  },
+  "gameSpaceComingSoon": "Game space coming soon!",
+  "@gameSpaceComingSoon": {
+    "description": "Game space coming soon message"
+  },
+
+  "commonCancel": "Cancel",
+  "@commonCancel": {
+    "description": "Cancel button"
+  },
+  "commonConfirm": "Confirm",
+  "@commonConfirm": {
+    "description": "Confirm button"
+  },
+  "commonClear": "Clear",
+  "@commonClear": {
+    "description": "Clear button"
+  },
+  "commonSearch": "Search",
+  "@commonSearch": {
+    "description": "Search button"
+  },
+  "commonToday": "Today",
+  "@commonToday": {
+    "description": "Today"
+  },
+  "commonSettings": "Settings",
+  "@commonSettings": {
+    "description": "Settings"
+  },
+  "commonLanguage": "Language",
+  "@commonLanguage": {
+    "description": "Language settings title"
+  },
+  "languageZh": "Traditional Chinese",
+  "@languageZh": {
+    "description": "Traditional Chinese language name"
+  },
+  "languageEn": "English",
+  "@languageEn": {
+    "description": "English language name"
+  },
+  "selectLanguage": "Select Language",
+  "@selectLanguage": {
+    "description": "Select language title"
+  },
+  "languageSubtitle": "Choose your preferred display language",
+  "@languageSubtitle": {
+    "description": "Language settings subtitle"
+  },
+  "appInfoTitle": "App Info",
+  "@appInfoTitle": {
+    "description": "App info title"
+  },
+  "appInfoName": "Name",
+  "@appInfoName": {
+    "description": "App name label"
+  },
+  "appInfoVersion": "Version",
+  "@appInfoVersion": {
+    "description": "App version label"
+  },
+  "appInfoDataSource": "Data Source",
+  "@appInfoDataSource": {
+    "description": "Data source label"
+  },
+  "appInfoDataSourceValue": "TDX Transport Data Exchange Platform",
+  "@appInfoDataSourceValue": {
+    "description": "Data source value"
+  },
+
+  "bikeMapTitle": "Map",
+  "@bikeMapTitle": {
+    "description": "Bike map page title"
+  },
+  "bikeMapSearchHint": "Search location...",
+  "@bikeMapSearchHint": {
+    "description": "Bike map search hint"
+  },
+
+  "bikeNoStations": "No station data available",
+  "@bikeNoStations": {
+    "description": "UBike no stations data message"
+  },
+  "bikeNoStationsData": "No UBike station data available currently",
+  "@bikeNoStationsData": {
+    "description": "UBike no data message"
+  },
+  "bikeNoMatchingStations": "No stations matching \"{query}\"",
+  "@bikeNoMatchingStations": {
+    "description": "Search no results message",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "bikeUnableGetLocation": "Unable to get location",
+  "@bikeUnableGetLocation": {
+    "description": "Unable to get location message"
+  },
+  "bikeCheckGps": "Please enable GPS and allow location permission",
+  "@bikeCheckGps": {
+    "description": "Check GPS prompt"
+  },
+  "bikeClearSearch": "Clear Search",
+  "@bikeClearSearch": {
+    "description": "Clear search button"
+  },
+  "bikeRetryLocation": "Retry Location",
+  "@bikeRetryLocation": {
+    "description": "Retry location button"
+  },
+  "bikeReload": "Reload",
+  "@bikeReload": {
+    "description": "Reload button"
+  },
+  "bikeTotalStations": "{count} stations total",
+  "@bikeTotalStations": {
+    "description": "Total stations count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bikeRecordedStations": "{count} frequently used stations recorded",
+  "@bikeRecordedStations": {
+    "description": "Recorded stations count",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bikeUpdatedAt": "Updated at {time}",
+  "@bikeUpdatedAt": {
+    "description": "Update time display",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "bikeJustNow": "Just now",
+  "@bikeJustNow": {
+    "description": "Just updated"
+  },
+  "bikeMinutesAgo": "{minutes} min ago",
+  "@bikeMinutesAgo": {
+    "description": "Minutes ago",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "bikeHoursAgo": "{hours} hr ago",
+  "@bikeHoursAgo": {
+    "description": "Hours ago",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "bikeAvailable": "Available",
+  "@bikeAvailable": {
+    "description": "Bikes available"
+  },
+  "bikeStations": "Stations",
+  "@bikeStations": {
+    "description": "Stations text"
+  },
+
+  "aiPlanDialogTitle": "AI Trip Planning",
+  "@aiPlanDialogTitle": {
+    "description": "AI planning dialog title"
+  },
+  "aiPlanDialogSubtitle": "Let Gemini AI help you plan the best route",
+  "@aiPlanDialogSubtitle": {
+    "description": "AI planning dialog subtitle"
+  },
+  "aiPlanFromLocation": "From",
+  "@aiPlanFromLocation": {
+    "description": "From location label"
+  },
+  "aiPlanFromHint": "Enter departure location or use GPS",
+  "@aiPlanFromHint": {
+    "description": "From location hint"
+  },
+  "aiPlanToLocation": "To",
+  "@aiPlanToLocation": {
+    "description": "To location label"
+  },
+  "aiPlanToHint": "Enter destination or use GPS",
+  "@aiPlanToHint": {
+    "description": "To location hint"
+  },
+  "aiPlanStartButton": "Start Planning",
+  "@aiPlanStartButton": {
+    "description": "Start planning button"
+  },
+  "aiPlanLoadingMessage": "Gemini AI is planning your route...",
+  "@aiPlanLoadingMessage": {
+    "description": "AI planning loading message"
+  },
+  "aiPlanLoadingSubtitle": "This may take a few seconds",
+  "@aiPlanLoadingSubtitle": {
+    "description": "AI planning loading subtitle"
+  },
+  "aiPlanGpsDisabled": "Please enable location services first",
+  "@aiPlanGpsDisabled": {
+    "description": "GPS disabled prompt"
+  },
+  "aiPlanPermissionDenied": "Location permission required to use this feature",
+  "@aiPlanPermissionDenied": {
+    "description": "Location permission denied prompt"
+  },
+  "aiPlanPermissionDeniedForever": "Location permission permanently denied, please enable in settings",
+  "@aiPlanPermissionDeniedForever": {
+    "description": "Location permission permanently denied prompt"
+  },
+  "aiPlanLocationError": "Unable to get location: {error}",
+  "@aiPlanLocationError": {
+    "description": "Location error message",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiPlanFillLocation": "Please fill in departure and destination",
+  "@aiPlanFillLocation": {
+    "description": "Fill location prompt"
+  },
+  "geminiLoginRequired": "Login Required",
+  "@geminiLoginRequired": {
+    "description": "Gemini login dialog title"
+  },
+  "geminiLoginMessage": "AI planning requires Gemini login.\n\nPlease tap \"Open Login Page\" and sign in with your Google account.\nReturn to the app when done.",
+  "@geminiLoginMessage": {
+    "description": "Gemini login dialog content"
+  },
+  "geminiLoginButton": "Open Login Page",
+  "@geminiLoginButton": {
+    "description": "Open login page button"
+  },
+  "geminiLoginTitle": "Sign in to Gemini",
+  "@geminiLoginTitle": {
+    "description": "Gemini login screen title"
+  },
+  "geminiLoginAutoReturn": "Will auto-return after login",
+  "@geminiLoginAutoReturn": {
+    "description": "Gemini login screen subtitle"
+  },
+  "geminiLoginComplete": "Done",
+  "@geminiLoginComplete": {
+    "description": "Gemini login complete button"
+  },
+
+  "locationPickerTitle": "Select Location",
+  "@locationPickerTitle": {
+    "description": "Location picker dialog title"
+  },
+  "locationPickerSubtitle": "Tap on the map to select a location",
+  "@locationPickerSubtitle": {
+    "description": "Location picker subtitle"
+  },
+  "locationPickerSelected": "Selected: {lat}, {lng}",
+  "@locationPickerSelected": {
+    "description": "Selected location coordinates",
+    "placeholders": {
+      "lat": {"type": "String"},
+      "lng": {"type": "String"}
+    }
+  },
+  "locationPickerHint": "Tap on the map to select a location",
+  "@locationPickerHint": {
+    "description": "Location picker hint text"
+  },
+  "locationPickerConfirmSelection": "Confirm Selection",
+  "@locationPickerConfirmSelection": {
+    "description": "Confirm selection button"
+  },
+  "locationPickerConfirmTitle": "Confirm Selection",
+  "@locationPickerConfirmTitle": {
+    "description": "Confirm dialog title"
+  },
+  "locationPickerConfirmMessage": "Are you sure you want to select these coordinates?",
+  "@locationPickerConfirmMessage": {
+    "description": "Confirm dialog message"
+  },
+  "locationPickerLatitude": "Latitude",
+  "@locationPickerLatitude": {
+    "description": "Latitude label"
+  },
+  "locationPickerLongitude": "Longitude",
+  "@locationPickerLongitude": {
+    "description": "Longitude label"
+  },
+  "locationPickerReSelect": "Reselect",
+  "@locationPickerReSelect": {
+    "description": "Reselect button"
+  },
+
+  "aiResultTitle": "AI Planning Result",
+  "@aiResultTitle": {
+    "description": "AI result bubble title"
+  },
+  "aiResultPlanning": "Planning...",
+  "@aiResultPlanning": {
+    "description": "AI planning in progress title"
+  },
+  "aiResultGeneratedBy": "Generated by Gemini AI",
+  "@aiResultGeneratedBy": {
+    "description": "AI result generated by label"
+  },
+  "aiResultRetry": "Retry",
+  "@aiResultRetry": {
+    "description": "Retry planning button"
+  },
+  "aiResultLoadingSubtitle": "This may take a few seconds",
+  "@aiResultLoadingSubtitle": {
+    "description": "AI result loading subtitle"
+  },
+  "aiResultDisclaimer": "The above information is AI-generated. Actual traffic conditions may vary, please refer to on-site information.",
+  "@aiResultDisclaimer": {
+    "description": "AI result disclaimer note"
+  },
+  "aiResultPlanningMessage": "AI is planning your route...",
+  "@aiResultPlanningMessage": {
+    "description": "Default AI planning message"
+  },
+
+  "bikeLocationNotFound": "Location \"{keyword}\" not found",
+  "@bikeLocationNotFound": {
+    "description": "Location not found message",
+    "placeholders": {
+      "keyword": {"type": "String"}
+    }
+  },
+  "bikeScanToRent": "Please use YouBike App to scan and rent",
+  "@bikeScanToRent": {
+    "description": "Scan to rent bike message"
+  },
+  "bikeReturnToPillar": "Please return the bike to the parking pillar",
+  "@bikeReturnToPillar": {
+    "description": "Return bike to pillar message"
+  },
+  "bikeRent": "Rent",
+  "@bikeRent": {
+    "description": "Rent button"
+  },
+  "bikeReturn": "Return",
+  "@bikeReturn": {
+    "description": "Return button"
+  },
+  "bikeAvailableBikes": "Available",
+  "@bikeAvailableBikes": {
+    "description": "Available bikes label"
+  },
+  "bikeEmptySlots": "Empty Slots",
+  "@bikeEmptySlots": {
+    "description": "Empty slots label"
+  },
+  "bikeDistance": "Distance",
+  "@bikeDistance": {
+    "description": "Distance label"
+  }
+}

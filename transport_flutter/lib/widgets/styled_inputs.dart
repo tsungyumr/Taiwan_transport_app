@@ -207,6 +207,7 @@ class StyledDropdown<T> extends StatelessWidget {
       margin: const EdgeInsets.only(top: 5),
       child: DropdownButtonFormField<T>(
         initialValue: value,
+        isExpanded: true, // 讓選中項適應可用空間，避免溢出
         decoration: InputDecoration(
           labelText: labelText,
           labelStyle: AppTextStyles.bodyMedium.copyWith(

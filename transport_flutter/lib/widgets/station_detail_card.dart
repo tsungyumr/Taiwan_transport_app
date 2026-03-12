@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/bike_station.dart';
 import '../ui_theme.dart';
+import '../l10n/app_localizations.dart';
 
 /// UBike 站點詳情卡片
 class StationDetailCard extends StatelessWidget {
@@ -33,6 +34,7 @@ class StationDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -126,7 +128,7 @@ class StationDetailCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '更新於 ${_formatTime(station.updateTime)}',
+                  l10n.bikeUpdatedAt(_formatTime(station.updateTime, l10n)),
                   style: AppTextStyles.labelSmall.copyWith(
                     color: AppColors.onSurfaceLight,
                   ),
@@ -142,14 +144,14 @@ class StationDetailCard extends StatelessWidget {
               children: [
                 _StatItem(
                   icon: Icons.pedal_bike,
-                  label: '剩餘車輛',
+                  label: l10n.bikeAvailableBikes,
                   value: '${station.availableBikes}/${station.totalSlots}',
                   color: station.statusColor,
                 ),
                 const SizedBox(width: 24),
                 _StatItem(
                   icon: Icons.local_parking,
-                  label: '空位數',
+                  label: l10n.bikeEmptySlots,
                   value: '${station.emptySlots}',
                   color: AppColors.info,
                 ),
@@ -157,7 +159,7 @@ class StationDetailCard extends StatelessWidget {
                   const SizedBox(width: 24),
                   _StatItem(
                     icon: Icons.navigation,
-                    label: '距離',
+                    label: l10n.bikeDistance,
                     value: station.formattedDistance,
                     color: AppColors.primary,
                   ),
@@ -174,7 +176,7 @@ class StationDetailCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.pedal_bike,
-                    label: '租借',
+                    label: l10n.bikeRent,
                     onTap: onRent,
                     color: BikeColors.primary,
                   ),
@@ -183,7 +185,7 @@ class StationDetailCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.local_parking,
-                    label: '還車',
+                    label: l10n.bikeReturn,
                     onTap: onReturn,
                     color: AppColors.info,
                   ),
@@ -192,7 +194,7 @@ class StationDetailCard extends StatelessWidget {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.navigation,
-                    label: '導航',
+                    label: l10n.bikeNavigate,
                     onTap: _openNavigation,
                     color: AppColors.success,
                   ),
@@ -206,16 +208,16 @@ class StationDetailCard extends StatelessWidget {
     );
   }
 
-  String _formatTime(DateTime time) {
+  String _formatTime(DateTime time, AppLocalizations l10n) {
     final now = DateTime.now();
     final diff = now.difference(time);
 
     if (diff.inMinutes < 1) {
-      return '剛剛';
+      return l10n.bikeJustNow;
     } else if (diff.inMinutes < 60) {
-      return '${diff.inMinutes} 分鐘前';
+      return l10n.bikeMinutesAgo(diff.inMinutes);
     } else if (diff.inHours < 24) {
-      return '${diff.inHours} 小時前';
+      return l10n.bikeHoursAgo(diff.inHours);
     } else {
       return '${time.month}/${time.day} ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
     }

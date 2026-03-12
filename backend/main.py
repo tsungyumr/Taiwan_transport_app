@@ -38,6 +38,52 @@ from time import time
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# ==================== 縣市名稱中英文對照表 ====================
+CITY_NAME_MAP = {
+    # 中文 -> 英文
+    "臺北市": "Taipei City",
+    "台北市": "Taipei City",
+    "新北市": "New Taipei City",
+    "桃園市": "Taoyuan City",
+    "臺中市": "Taichung City",
+    "台中市": "Taichung City",
+    "臺南市": "Tainan City",
+    "台南市": "Tainan City",
+    "高雄市": "Kaohsiung City",
+    "基隆市": "Keelung City",
+    "新竹市": "Hsinchu City",
+    "新竹縣": "Hsinchu County",
+    "苗栗縣": "Miaoli County",
+    "彰化縣": "Changhua County",
+    "南投縣": "Nantou County",
+    "雲林縣": "Yunlin County",
+    "嘉義市": "Chiayi City",
+    "嘉義縣": "Chiayi County",
+    "屏東縣": "Pingtung County",
+    "宜蘭縣": "Yilan County",
+    "花蓮縣": "Hualien County",
+    "臺東縣": "Taitung County",
+    "台東縣": "Taitung County",
+    "澎湖縣": "Penghu County",
+    "金門縣": "Kinmen County",
+    "連江縣": "Lienchiang County",
+}
+
+def get_city_name(city_zh: str, lang: str = "zh") -> str:
+    """
+    取得縣市名稱（根據語言）
+
+    Args:
+        city_zh: 中文縣市名稱
+        lang: 語言代碼，"zh" 或 "en"
+
+    Returns:
+        對應語言的縣市名稱
+    """
+    if lang == "en":
+        return CITY_NAME_MAP.get(city_zh, city_zh)
+    return city_zh
+
 # ==================== 高鐵站點資料模型 ====================
 class THSRStation(BaseModel):
     """高鐵站點資料模型"""
@@ -2069,7 +2115,7 @@ async def clear_service_cache(service: str):
 # ----- 台鐵 API (使用 TDX) -----
 
 @app.get("/api/railway/stations")
-async def get_railway_stations():
+async def get_railway_stations(lang: str = Query("zh", description="語言 (zh 或 en)")):
     """取得台鐵車站列表 (使用 TDX API)，包含經緯度座標和縣市資訊"""
     try:
         tra_service = get_tra_service()
@@ -2079,20 +2125,26 @@ async def get_railway_stations():
         stations = []
         for station in stations_with_pos:
             station_id = station.get("StationID", "")
-            station_name = station.get("StationName", {}).get("Zh_tw", "")
+            station_name_zh = station.get("StationName", {}).get("Zh_tw", "")
             station_name_en = station.get("StationName", {}).get("En", "")
             latitude = station.get("latitude")
             longitude = station.get("longitude")
-            city = station.get("LocationCity", "")
+            city_zh = station.get("LocationCity", "")
 
-            if station_id and station_name:
+            if station_id and station_name_zh:
+                # 根據語言選擇顯示名稱
+                display_name = station_name_en if lang == "en" else station_name_zh
+                city_name = get_city_name(city_zh, lang)
+
                 stations.append({
                     "station_code": station_id,
-                    "station_name": station_name,
+                    "station_name": display_name,
+                    "station_name_zh": station_name_zh,
                     "station_name_en": station_name_en,
                     "latitude": latitude,
                     "longitude": longitude,
-                    "city": city,
+                    "city": city_name,
+                    "city_zh": city_zh,
                 })
 
         return stations
@@ -2103,11 +2155,13 @@ async def get_railway_stations():
         for code, name in TaiwanRailwayScraper.STATIONS.items():
             stations.append({
                 "station_code": code,
-                "station_name": name,
+                "station_name": name if lang == "zh" else name,
+                "station_name_zh": name,
                 "station_name_en": name,
                 "latitude": None,
                 "longitude": None,
                 "city": "",
+                "city_zh": "",
             })
         return stations
 
@@ -2117,7 +2171,8 @@ async def get_railway_timetable(
     from_station: str = Query(..., description="出發站代碼或名稱"),
     to_station: str = Query(..., description="抵達站代碼或名稱"),
     date: str = Query(None, description="日期 YYYY/MM/DD"),
-    time: str = Query(None, description="時間 HH:MM")
+    time: str = Query(None, description="時間 HH:MM"),
+    lang: str = Query("zh", description="語言 (zh 或 en)")
 ):
     """查詢台鐵時刻表 (使用 TDX API)"""
     try:
@@ -2126,17 +2181,21 @@ async def get_railway_timetable(
         # 將站點代碼轉換為站名（如果是數字代碼）
         from_name = from_station
         to_name = to_station
+        from_name_en = from_station
+        to_name_en = to_station
 
         # 如果是數字代碼，嘗試轉換為站名
         if from_station.isdigit():
             station = await tra_service.get_station_by_id(from_station)
             if station:
                 from_name = station.get("StationName", {}).get("Zh_tw", from_station)
+                from_name_en = station.get("StationName", {}).get("En", from_station)
 
         if to_station.isdigit():
             station = await tra_service.get_station_by_id(to_station)
             if station:
                 to_name = station.get("StationName", {}).get("Zh_tw", to_station)
+                to_name_en = station.get("StationName", {}).get("En", to_station)
 
         # 搜尋時刻表
         trains = await tra_service.search_timetable(from_name, to_name, date)
@@ -2152,11 +2211,16 @@ async def get_railway_timetable(
                 mins = duration_minutes % 60
                 duration_str = f"{hours}:{mins:02d}"
 
+            # 根據語言選擇顯示名稱
+            departure_station = from_name_en if lang == "en" else from_name
+            arrival_station = to_name_en if lang == "en" else to_name
+            train_type = train.get("train_type", "")
+
             results.append(TrainTimeEntry(
                 train_no=train.get("train_no", ""),
-                train_type=train.get("train_type", ""),
-                departure_station=train.get("from_station", ""),
-                arrival_station=train.get("to_station", ""),
+                train_type=train_type,
+                departure_station=departure_station,
+                arrival_station=arrival_station,
                 departure_time=train.get("departure_time", ""),
                 arrival_time=train.get("arrival_time", ""),
                 duration=duration_str,
@@ -2174,7 +2238,7 @@ async def get_railway_timetable(
 # ----- 高鐵 API (使用 TDX) -----
 
 @app.get("/api/thsr/stations")
-async def get_thsr_stations():
+async def get_thsr_stations(lang: str = Query("zh", description="語言 (zh 或 en)")):
     """取得高鐵車站列表 (使用 TDX API)，包含經緯度座標"""
     try:
         thsr_service = get_thsr_service()
@@ -2184,15 +2248,19 @@ async def get_thsr_stations():
         stations = []
         for station in stations_with_pos:
             station_id = station.get("StationID", "")
-            station_name = station.get("StationName", {}).get("Zh_tw", "")
+            station_name_zh = station.get("StationName", {}).get("Zh_tw", "")
             station_name_en = station.get("StationName", {}).get("En", "")
             latitude = station.get("latitude")
             longitude = station.get("longitude")
 
-            if station_id and station_name:
+            if station_id and station_name_zh:
+                # 根據語言選擇顯示名稱
+                display_name = station_name_en if lang == "en" else station_name_zh
+
                 stations.append({
                     "code": station_id,
-                    "name": station_name,
+                    "name": display_name,
+                    "name_zh": station_name_zh,
                     "name_en": station_name_en,
                     "latitude": latitude,
                     "longitude": longitude,
@@ -2206,7 +2274,9 @@ async def get_thsr_stations():
         for code, name in THSRScraper.STATIONS.items():
             stations.append({
                 "code": code,
-                "name": name,
+                "name": name if lang == "zh" else name,
+                "name_zh": name,
+                "name_en": name,
                 "latitude": None,
                 "longitude": None,
             })
@@ -2217,7 +2287,8 @@ async def get_thsr_stations():
 async def get_thsr_timetable(
     from_station: str = Query(..., description="出發站代碼或名稱"),
     to_station: str = Query(..., description="抵達站代碼或名稱"),
-    date: str = Query(None, description="日期 YYYY-MM-DD")
+    date: str = Query(None, description="日期 YYYY-MM-DD"),
+    lang: str = Query("zh", description="語言 (zh 或 en)")
 ):
     """查詢高鐵時刻表 (使用 TDX API)"""
     try:
@@ -2226,19 +2297,46 @@ async def get_thsr_timetable(
         # 將站點代碼轉換為站名（如果是數字代碼）
         from_name = from_station
         to_name = to_station
+        from_name_en = from_station
+        to_name_en = to_station
 
         # 如果是數字代碼，嘗試轉換為站名
         if from_station.isdigit():
             station = await thsr_service.get_station_by_id(from_station)
             if station:
                 from_name = station.get("StationName", {}).get("Zh_tw", from_station)
+                from_name_en = station.get("StationName", {}).get("En", from_station)
 
         if to_station.isdigit():
             station = await thsr_service.get_station_by_id(to_station)
             if station:
                 to_name = station.get("StationName", {}).get("Zh_tw", to_station)
+                to_name_en = station.get("StationName", {}).get("En", to_station)
 
-        # 搜尋時刻表
+        # 如果不是數字代碼，且可能是英文名稱，嘗試轉換為中文
+        if not from_station.isdigit():
+            # 嘗試查找對應的中文站名
+            stations = await thsr_service.get_stations()
+            for station in stations:
+                station_name_zh = station.get("StationName", {}).get("Zh_tw", "")
+                station_name_en = station.get("StationName", {}).get("En", "")
+                if station_name_en == from_station:
+                    from_name = station_name_zh
+                    from_name_en = station_name_en
+                    break
+
+        if not to_station.isdigit():
+            # 嘗試查找對應的中文站名
+            stations = await thsr_service.get_stations()
+            for station in stations:
+                station_name_zh = station.get("StationName", {}).get("Zh_tw", "")
+                station_name_en = station.get("StationName", {}).get("En", "")
+                if station_name_en == to_station:
+                    to_name = station_name_zh
+                    to_name_en = station_name_en
+                    break
+
+        # 搜尋時刻表（必須使用中文站名）
         trains = await thsr_service.search_timetable(from_name, to_name, date)
 
         # 轉換為 API 回傳格式
@@ -2252,10 +2350,14 @@ async def get_thsr_timetable(
                 mins = duration_minutes % 60
                 duration_str = f"{hours}:{mins:02d}"
 
+            # 根據語言選擇顯示名稱
+            departure_station = from_name_en if lang == "en" else from_name
+            arrival_station = to_name_en if lang == "en" else to_name
+
             results.append(THSRTrainEntry(
                 train_no=train.get("train_no", ""),
-                departure_station=train.get("from_station", ""),
-                arrival_station=train.get("to_station", ""),
+                departure_station=departure_station,
+                arrival_station=arrival_station,
                 departure_time=train.get("departure_time", ""),
                 arrival_time=train.get("arrival_time", ""),
                 duration=duration_str,

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import '../../l10n/app_localizations.dart';
 import '../../ui_theme.dart';
 
 /// AI 規劃結果氣泡對話框
@@ -48,8 +49,10 @@ class AIResultBubble extends StatelessWidget {
   /// 顯示載入中狀態
   static Future<void> showLoading(
     BuildContext context, {
-    String message = 'AI 正在規劃路線...',
+    String? message,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final displayMessage = message ?? l10n.aiResultPlanningMessage;
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -57,7 +60,7 @@ class AIResultBubble extends StatelessWidget {
       enableDrag: false,
       isDismissible: false,
       builder: (context) => AIResultBubble(
-        result: message,
+        result: displayMessage,
         isLoading: true,
         onClose: () => Navigator.pop(context),
       ),
@@ -115,6 +118,7 @@ class AIResultBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.8,
@@ -179,14 +183,14 @@ class AIResultBubble extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isLoading ? '規劃中...' : 'AI 規劃結果',
+                        isLoading ? l10n.aiResultPlanning : l10n.aiResultTitle,
                         style: AppTextStyles.titleLarge.copyWith(
                           color: AppColors.onSurface,
                         ),
                       ),
                       if (!isLoading)
                         Text(
-                          '由 Gemini AI 生成',
+                          l10n.aiResultGeneratedBy,
                           style: AppTextStyles.bodySmall,
                         ),
                     ],
@@ -196,7 +200,7 @@ class AIResultBubble extends StatelessWidget {
                   TextButton.icon(
                     onPressed: onRetry,
                     icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('重新規劃'),
+                    label: Text(l10n.aiResultRetry),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.primary,
                     ),
@@ -214,7 +218,7 @@ class AIResultBubble extends StatelessWidget {
           // 內容區域
           Expanded(
             child: isLoading
-                ? _buildLoadingContent()
+                ? _buildLoadingContent(context)
                 : _buildResultContent(context),
           ),
 
@@ -226,7 +230,8 @@ class AIResultBubble extends StatelessWidget {
   }
 
   /// 構建載入中的內容
-  Widget _buildLoadingContent() {
+  Widget _buildLoadingContent(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -268,7 +273,7 @@ class AIResultBubble extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              '這可能需要幾秒鐘',
+              l10n.aiResultLoadingSubtitle,
               style: AppTextStyles.bodySmall,
             ),
           ],
@@ -308,7 +313,7 @@ class AIResultBubble extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
 
           // 提示資訊
-          _buildInfoNote(),
+          _buildInfoNote(context),
         ],
       ),
     );
@@ -324,68 +329,72 @@ class AIResultBubble extends StatelessWidget {
         final bottomPadding = MediaQuery.of(context).padding.bottom;
         final webViewHeight = constraints.maxHeight - 80 - bottomPadding;
 
-        return Column(
-          children: [
-            // WebView 區域
-            SizedBox(
-              height: webViewHeight > 100 ? webViewHeight : 200,
-              child: Container(
-                margin: const EdgeInsets.all(AppSpacing.lg),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(AppRadius.medium),
-                  border: Border.all(
-                    color: AppColors.divider,
-                    width: 1,
+        return SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // WebView 區域
+              SizedBox(
+                height: webViewHeight > 100 ? webViewHeight : 200,
+                child: Container(
+                  margin: const EdgeInsets.all(AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.medium),
+                    border: Border.all(
+                      color: AppColors.divider,
+                      width: 1,
+                    ),
                   ),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppRadius.medium),
-                  child: InAppWebView(
-                    initialData: InAppWebViewInitialData(
-                      data: htmlContent,
-                      mimeType: 'text/html',
-                      encoding: 'utf-8',
-                    ),
-                    initialSettings: InAppWebViewSettings(
-                      javaScriptEnabled: true,
-                      transparentBackground: true,
-                      supportZoom: true,
-                      useWideViewPort: true,
-                      loadWithOverviewMode: false,
-                      verticalScrollBarEnabled: true,
-                      horizontalScrollBarEnabled: false,
-                      builtInZoomControls: true,
-                      displayZoomControls: true,
-                      initialScale: 0,
-                      overScrollMode: OverScrollMode.ALWAYS,
-                    ),
-                    gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                      Factory<OneSequenceGestureRecognizer>(
-                        () => EagerGestureRecognizer(),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.medium),
+                    child: InAppWebView(
+                      initialData: InAppWebViewInitialData(
+                        data: htmlContent,
+                        mimeType: 'text/html',
+                        encoding: 'utf-8',
                       ),
-                    },
+                      initialSettings: InAppWebViewSettings(
+                        javaScriptEnabled: true,
+                        transparentBackground: true,
+                        supportZoom: true,
+                        useWideViewPort: true,
+                        loadWithOverviewMode: false,
+                        verticalScrollBarEnabled: true,
+                        horizontalScrollBarEnabled: false,
+                        builtInZoomControls: true,
+                        displayZoomControls: true,
+                        initialScale: 0,
+                        overScrollMode: OverScrollMode.ALWAYS,
+                      ),
+                      gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                        Factory<OneSequenceGestureRecognizer>(
+                          () => EagerGestureRecognizer(),
+                        ),
+                      },
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            // 提示資訊
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: _buildInfoNote(),
-            ),
+              // 提示資訊
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: _buildInfoNote(context),
+              ),
 
-            // 底部安全區域
-            SizedBox(height: bottomPadding),
-          ],
+              // 底部安全區域
+              SizedBox(height: bottomPadding),
+            ],
+          ),
         );
       },
     );
   }
 
   /// 構建提示資訊
-  Widget _buildInfoNote() {
+  Widget _buildInfoNote(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -407,7 +416,7 @@ class AIResultBubble extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
-              '以上資訊由 AI 生成，實際交通狀況可能有所不同，請以現場為準。',
+              l10n.aiResultDisclaimer,
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.info,
               ),

@@ -2,6 +2,7 @@
 // UBike 站點卡片元件
 
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../models/bike_station.dart';
 import '../ui_theme.dart';
 
@@ -82,13 +83,18 @@ class BikeStationCard extends StatelessWidget {
                                 color: station.statusColor.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Text(
-                                '可借 ${station.availableBikes}/${station.totalSlots}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: station.statusColor,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                              child: Builder(
+                                builder: (context) {
+                                  final l10n = AppLocalizations.of(context)!;
+                                  return Text(
+                                    '${l10n.bikeAvailable} ${station.availableBikes}/${station.totalSlots}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: station.statusColor,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  );
+                                }
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -184,14 +190,16 @@ class StationStatsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 城市代碼轉中文
+    final l10n = AppLocalizations.of(context)!;
+    final isZh = Localizations.localeOf(context).languageCode == 'zh';
+    // 城市代碼轉換
     final cityNameMap = {
-      'Taipei': '台北市',
-      'NewTaipei': '新北市',
-      'Taichung': '台中市',
-      'Tainan': '台南市',
-      'Kaohsiung': '高雄市',
-      'Taoyuan': '桃園市',
+      'Taipei': isZh ? '台北市' : 'Taipei',
+      'NewTaipei': isZh ? '新北市' : 'New Taipei',
+      'Taichung': isZh ? '台中市' : 'Taichung',
+      'Tainan': isZh ? '台南市' : 'Tainan',
+      'Kaohsiung': isZh ? '高雄市' : 'Kaohsiung',
+      'Taoyuan': isZh ? '桃園市' : 'Taoyuan',
     };
     final cityText = cities != null && cities!.isNotEmpty
         ? cities!.map((c) => cityNameMap[c] ?? c).join('、')
@@ -214,8 +222,8 @@ class StationStatsBar extends StatelessWidget {
           Expanded(
             child: Text(
               totalStations != null
-                  ? '共 $totalStations 個站點 ($cityText)'
-                  : '已記錄 $stationCount 個常用站點',
+                  ? '${l10n.bikeTotalStations(totalStations!)} ($cityText)'
+                  : l10n.bikeRecordedStations(stationCount),
               style: AppTextStyles.labelSmall.copyWith(
                 color: AppColors.onSurfaceLight,
               ),
@@ -224,7 +232,7 @@ class StationStatsBar extends StatelessWidget {
           ),
           if (lastUpdateTime != null) ...[
             Text(
-              '更新於 ${_formatTime(lastUpdateTime!)}',
+              l10n.bikeUpdatedAt(_formatTime(context, lastUpdateTime!)),
               style: AppTextStyles.labelSmall.copyWith(
                 color: AppColors.onSurfaceLight,
                 fontSize: 10,
@@ -246,16 +254,17 @@ class StationStatsBar extends StatelessWidget {
     );
   }
 
-  String _formatTime(DateTime time) {
+  String _formatTime(BuildContext context, DateTime time) {
+    final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
     final diff = now.difference(time);
 
     if (diff.inMinutes < 1) {
-      return '剛剛';
+      return l10n.bikeJustNow;
     } else if (diff.inMinutes < 60) {
-      return '${diff.inMinutes} 分鐘前';
+      return l10n.bikeMinutesAgo(diff.inMinutes);
     } else if (diff.inHours < 24) {
-      return '${diff.inHours} 小時前';
+      return l10n.bikeHoursAgo(diff.inHours);
     } else {
       return '${time.month}/${time.day} ${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
     }
@@ -277,6 +286,7 @@ class BikeEmptyStateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isSearching = searchQuery != null && searchQuery!.isNotEmpty;
     final isLocationError = searchQuery == 'location_error';
 
@@ -304,18 +314,18 @@ class BikeEmptyStateCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
             Text(
               isLocationError
-                  ? '無法取得位置'
-                  : (isSearching ? '找不到站點' : '暫無站點資料'),
+                  ? l10n.bikeUnableGetLocation
+                  : (isSearching ? l10n.bikeNoStations : l10n.bikeNoStations),
               style: AppTextStyles.headlineSmall,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               isLocationError
-                  ? '請確認 GPS 已開啟並允許位置權限'
+                  ? l10n.bikeCheckGps
                   : (isSearching
-                      ? '沒有符合 "$searchQuery" 的站點'
-                      : '目前沒有可用的 UBike 站點資料'),
+                      ? l10n.bikeNoMatchingStations(searchQuery!)
+                      : l10n.bikeNoStationsData),
               style: AppTextStyles.bodySmall,
               textAlign: TextAlign.center,
             ),
@@ -323,19 +333,19 @@ class BikeEmptyStateCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               ElevatedButton(
                 onPressed: onClearSearch,
-                child: const Text('清除搜尋'),
+                child: Text(l10n.bikeClearSearch),
               ),
             ] else if (isLocationError && onRetry != null) ...[
               const SizedBox(height: AppSpacing.lg),
               ElevatedButton(
                 onPressed: onRetry,
-                child: const Text('重試取得位置'),
+                child: Text(l10n.bikeRetryLocation),
               ),
             ] else if (!isSearching && !isLocationError && onRetry != null) ...[
               const SizedBox(height: AppSpacing.lg),
               ElevatedButton(
                 onPressed: onRetry,
-                child: const Text('重新載入'),
+                child: Text(l10n.bikeReload),
               ),
             ],
           ],

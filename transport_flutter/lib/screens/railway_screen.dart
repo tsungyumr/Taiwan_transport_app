@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../l10n/app_localizations.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../widgets/animated_card.dart';
@@ -10,18 +11,51 @@ import '../ui_theme.dart';
 
 // 台鐵車種定義
 enum TrainType {
-  all('全部', '全部'),
-  express('自強號', '自強'),
-  chuKuang('莒光號', '莒光'),
-  local('區間車', '區間'),
-  localFast('區間快車', '區快'),
-  taroko('太魯閣號', '太魯閣'),
-  puyuma('普悠瑪號', '普悠瑪');
+  all,
+  express,
+  chuKuang,
+  local,
+  localFast,
+  taroko,
+  puyuma;
 
-  final String displayName;
-  final String searchKeyword;
+  String getDisplayName(AppLocalizations l10n) {
+    switch (this) {
+      case TrainType.all:
+        return l10n.railwayTrainTypeAll;
+      case TrainType.express:
+        return l10n.railwayTrainTypeExpress;
+      case TrainType.chuKuang:
+        return l10n.railwayTrainTypeChuKuang;
+      case TrainType.local:
+        return l10n.railwayTrainTypeLocal;
+      case TrainType.localFast:
+        return l10n.railwayTrainTypeLocalFast;
+      case TrainType.taroko:
+        return l10n.railwayTrainTypeTaroko;
+      case TrainType.puyuma:
+        return l10n.railwayTrainTypePuyuma;
+    }
+  }
 
-  const TrainType(this.displayName, this.searchKeyword);
+  String get searchKeyword {
+    switch (this) {
+      case TrainType.all:
+        return '';
+      case TrainType.express:
+        return '自強';
+      case TrainType.chuKuang:
+        return '莒光';
+      case TrainType.local:
+        return '區間';
+      case TrainType.localFast:
+        return '區快';
+      case TrainType.taroko:
+        return '太魯閣';
+      case TrainType.puyuma:
+        return '普悠瑪';
+    }
+  }
 }
 
 class RailwayScreen extends StatefulWidget {
@@ -64,6 +98,10 @@ class _RailwayScreenState extends State<RailwayScreen> {
   // 車種篩選
   TrainType _selectedTrainType = TrainType.all;
 
+  // 追蹤語言變化
+  String? _currentLang;
+  bool _isInitialized = false;
+
   // 取得所有縣市列表
   List<String> get _cities {
     final cities = _stations
@@ -86,10 +124,30 @@ class _RailwayScreenState extends State<RailwayScreen> {
   @override
   void initState() {
     super.initState();
-    _loadStations();
-    // 預設當天時間
-    _startTime = TimeOfDay.now();
-    _endTime = const TimeOfDay(hour: 23, minute: 59);
+    // initState 中無法使用 Localizations，延遲到 didChangeDependencies 加載
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final lang = Localizations.localeOf(context).languageCode;
+
+    // 首次初始化
+    if (!_isInitialized) {
+      _isInitialized = true;
+      _currentLang = lang;
+      _loadStations();
+      // 預設當天時間
+      _startTime = TimeOfDay.now();
+      _endTime = const TimeOfDay(hour: 23, minute: 59);
+      return;
+    }
+
+    // 語言變化時重新加載站點
+    if (_currentLang != lang) {
+      _currentLang = lang;
+      _loadStations();
+    }
   }
 
   // 格式化時間為字串 (HH:mm)
@@ -110,20 +168,22 @@ class _RailwayScreenState extends State<RailwayScreen> {
 
   // 取得搜尋摘要文字
   String _getSearchSummary() {
-    final fromStation = _selectedFromStationName ?? '請選擇出發站';
-    final toStation = _selectedToStationName ?? '請選擇抵達站';
+    final l10n = AppLocalizations.of(context)!;
+    final fromStation = _selectedFromStationName ?? l10n.railwaySelectFromStation;
+    final toStation = _selectedToStationName ?? l10n.railwaySelectToStation;
     final date = _selectedDate != null
         ? '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}'
-        : '今天';
+        : l10n.commonToday;
     final timeRange = _timeModeIndex == 1 && (_startTime != null || _endTime != null)
         ? '${_formatTime(_startTime)} - ${_formatTime(_endTime)}'
-        : '全天';
+        : l10n.railwayAllDay;
     return '$fromStation → $toStation | $date | $timeRange';
   }
 
-  Future<void> _loadStations() async {
+  Future<void> _loadStations({String? langOverride}) async {
     setState(() => _isLoading = true);
-    final stations = await _apiService.getRailwayStations();
+    final lang = langOverride ?? Localizations.localeOf(context).languageCode;
+    final stations = await _apiService.getRailwayStations(lang: lang);
     if (!mounted) return;
     setState(() {
       _stations = stations;
@@ -132,8 +192,10 @@ class _RailwayScreenState extends State<RailwayScreen> {
   }
 
   Future<void> _searchTimetable() async {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_selectedFromStationName == null || _selectedToStationName == null) {
-      _showErrorSnackBar('請選擇出發站與抵達站');
+      _showErrorSnackBar(l10n.railwaySelectStationsError);
       return;
     }
 
@@ -144,12 +206,17 @@ class _RailwayScreenState extends State<RailwayScreen> {
     final String? endTimeParam =
         (_timeModeIndex == 1 && _endTime != null) ? _formatTime(_endTime) : null;
 
+    // 取得當前語言
+    final locale = Localizations.localeOf(context);
+    final lang = locale.languageCode;
+
     // TDX API 使用站名（如「台北」）查詢時刻表
     final timetable = await _apiService.getRailwayTimetable(
       fromStation: _selectedFromStationName!,
       toStation: _selectedToStationName!,
       date: _selectedDate?.toIso8601String().split('T')[0],
       time: timeParam,
+      lang: lang,
     );
 
     if (!mounted) return;
@@ -279,10 +346,12 @@ class _RailwayScreenState extends State<RailwayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: widget.showAppBar
           ? AppBar(
-              title: const Text('台鐵時刻表'),
+              title: Text(l10n.railwayTitle),
               backgroundColor: TransportColors.railway,
               foregroundColor: Colors.white,
               elevation: 0,
@@ -313,7 +382,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
                     onToggle: _toggleSearchPanel,
                     summaryText: _getSearchSummary(),
                     accentColor: TransportColors.railway,
-                    title: '搜尋條件',
+                    title: l10n.railwaySearchConditions,
                     expandedContent: _buildSearchForm(),
                   ),
 
@@ -330,7 +399,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
                           const Icon(Icons.train, size: 16, color: AppColors.onSurfaceLight),
                           const SizedBox(width: AppSpacing.xs),
                           Text(
-                            '找到 ${_filteredTimetable.length} 班次',
+                            l10n.railwayTrainsFound(_filteredTimetable.length),
                             style: AppTextStyles.labelMedium.copyWith(
                               color: AppColors.onSurfaceLight,
                             ),
@@ -344,10 +413,10 @@ class _RailwayScreenState extends State<RailwayScreen> {
                     child: _filteredTimetable.isEmpty
                       ? _isLoading
                           ? const Center(child: PulseLoading(color: TransportColors.railway))
-                          : const EmptyStateCard(
+                          : EmptyStateCard(
                               icon: Icons.train_outlined,
-                              title: '請選擇站點並查詢時刻表',
-                              subtitle: '選擇出發站與抵達站，查看台鐵班次資訊',
+                              title: l10n.railwayEmptyTitle,
+                              subtitle: l10n.railwayEmptySubtitle,
                             )
                       : ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -378,6 +447,8 @@ class _RailwayScreenState extends State<RailwayScreen> {
   }
 
   Widget _buildSearchForm() {
+    final l10n = AppLocalizations.of(context)!;
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -385,12 +456,12 @@ class _RailwayScreenState extends State<RailwayScreen> {
         // 出發縣市選擇
         StyledDropdown<String>(
           value: _selectedFromCity,
-          labelText: '出發縣市',
+          labelText: l10n.railwayFromCity,
           prefixIcon: Icons.location_city,
           items: [
-            const DropdownMenuItem(
+            DropdownMenuItem(
               value: null,
-              child: Text('全部縣市'),
+              child: Text(l10n.railwayAllCities),
             ),
             ..._cities.map((city) => DropdownMenuItem(
                   value: city,
@@ -398,7 +469,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
                 )),
           ],
           selectedItemBuilder: (context) => [
-            const Text('全部縣市'),
+            Text(l10n.railwayAllCities),
             ..._cities.map((city) => Text(city)),
           ],
           onChanged: (value) {
@@ -417,7 +488,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
           value: _getStationsByCity(_selectedFromCity).isEmpty
               ? null
               : _selectedFromStationCode,
-          labelText: '出發站',
+          labelText: l10n.railwayFromStation,
           prefixIcon: Icons.train,
           items: _getStationsByCity(_selectedFromCity)
               .map((station) => DropdownMenuItem(
@@ -461,12 +532,12 @@ class _RailwayScreenState extends State<RailwayScreen> {
         // 抵達縣市選擇
         StyledDropdown<String>(
           value: _selectedToCity,
-          labelText: '抵達縣市',
+          labelText: l10n.railwayToCity,
           prefixIcon: Icons.location_city,
           items: [
-            const DropdownMenuItem(
+            DropdownMenuItem(
               value: null,
-              child: Text('全部縣市'),
+              child: Text(l10n.railwayAllCities),
             ),
             ..._cities.map((city) => DropdownMenuItem(
                   value: city,
@@ -474,7 +545,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
                 )),
           ],
           selectedItemBuilder: (context) => [
-            const Text('全部縣市'),
+            Text(l10n.railwayAllCities),
             ..._cities.map((city) => Text(city)),
           ],
           onChanged: (value) {
@@ -493,7 +564,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
           value: _getStationsByCity(_selectedToCity).isEmpty
               ? null
               : _selectedToStationCode,
-          labelText: '抵達站',
+          labelText: l10n.railwayToStation,
           prefixIcon: Icons.location_on,
           items: _getStationsByCity(_selectedToCity)
               .map((station) => DropdownMenuItem(
@@ -536,7 +607,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
 
         // 時間模式選擇 - 使用 SegmentedControl
         SegmentedControl(
-          options: const ['當天', '自訂時間'],
+          options: [l10n.railwayToday, l10n.railwayCustomTime],
           selectedIndex: _timeModeIndex,
           onChanged: (index) {
             setState(() {
@@ -553,13 +624,14 @@ class _RailwayScreenState extends State<RailwayScreen> {
         // 日期選擇
         DatePickerButton(
           selectedDate: _selectedDate,
-          label: '出發日期',
+          label: l10n.railwayDepartureDate,
           onTap: () async {
             final date = await showDatePicker(
               context: context,
               initialDate: _selectedDate ?? DateTime.now(),
               firstDate: DateTime.now(),
               lastDate: DateTime.now().add(const Duration(days: 30)),
+              locale: Localizations.localeOf(context),
               builder: (context, child) {
                 return Theme(
                   data: Theme.of(context).copyWith(
@@ -593,7 +665,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
                         color: TransportColors.railway, size: 16),
                     const SizedBox(width: AppSpacing.xs),
                     Text(
-                      '時間範圍',
+                      l10n.railwayTimeRange,
                       style: AppTextStyles.labelMedium.copyWith(
                         color: TransportColors.railway,
                         fontWeight: FontWeight.w600,
@@ -608,7 +680,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
                     Expanded(
                       child: TimePickerButton(
                         selectedTime: _startTime,
-                        label: '起始',
+                        label: l10n.railwayStart,
                         onTap: _selectStartTime,
                       ),
                     ),
@@ -621,7 +693,7 @@ class _RailwayScreenState extends State<RailwayScreen> {
                     Expanded(
                       child: TimePickerButton(
                         selectedTime: _endTime,
-                        label: '結束',
+                        label: l10n.railwayEnd,
                         onTap: _selectEndTime,
                       ),
                     ),
@@ -636,12 +708,12 @@ class _RailwayScreenState extends State<RailwayScreen> {
         // 車種篩選
         StyledDropdown<TrainType>(
           value: _selectedTrainType,
-          labelText: '車種篩選',
+          labelText: l10n.railwayTrainTypeFilter,
           prefixIcon: Icons.filter_list,
           items: TrainType.values
               .map((type) => DropdownMenuItem(
                     value: type,
-                    child: Text(type.displayName),
+                    child: Text(type.getDisplayName(l10n)),
                   ))
               .toList(),
           onChanged: (value) {
@@ -668,14 +740,14 @@ class _RailwayScreenState extends State<RailwayScreen> {
               ),
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.search, size: 20),
-                SizedBox(width: AppSpacing.sm),
+                const Icon(Icons.search, size: 20),
+                const SizedBox(width: AppSpacing.sm),
                 Text(
-                  '查詢時刻表',
-                  style: TextStyle(
+                  l10n.railwaySearchButton,
+                  style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     height: 1.2,

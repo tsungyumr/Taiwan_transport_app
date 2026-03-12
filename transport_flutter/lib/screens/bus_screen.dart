@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../l10n/app_localizations.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../services/search_history_service.dart';
@@ -124,6 +125,8 @@ class _BusScreenState extends State<BusScreen> {
 
   /// 清除所有觀看歷史
   Future<void> _clearAllHistory() async {
+    final l10n = AppLocalizations.of(context)!;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -134,14 +137,14 @@ class _BusScreenState extends State<BusScreen> {
           children: [
             Icon(Icons.delete_outline, color: AppColors.error),
             const SizedBox(width: AppSpacing.sm),
-            const Text('清除觀看歷史'),
+            Text(l10n.busClearHistoryConfirmTitle),
           ],
         ),
-        content: const Text('確定要清除所有路線觀看記錄嗎？'),
+        content: Text(l10n.busClearHistoryConfirmContent),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(l10n.commonCancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -149,7 +152,7 @@ class _BusScreenState extends State<BusScreen> {
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
             ),
-            child: const Text('清除'),
+            child: Text(l10n.commonClear),
           ),
         ],
       ),
@@ -171,7 +174,7 @@ class _BusScreenState extends State<BusScreen> {
             children: [
               const Icon(Icons.check_circle, color: Colors.white),
               const SizedBox(width: AppSpacing.sm),
-              const Text('觀看歷史已清除'),
+              Text(l10n.busHistoryCleared),
             ],
           ),
           behavior: SnackBarBehavior.floating,
@@ -228,9 +231,11 @@ class _BusScreenState extends State<BusScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('大台北公車'),
+        title: Text(l10n.busTitle),
         backgroundColor: TransportColors.bus,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -251,7 +256,7 @@ class _BusScreenState extends State<BusScreen> {
           if (_viewHistory.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_outline),
-              tooltip: '清除觀看歷史',
+              tooltip: l10n.busTooltipClearHistory,
               onPressed: _clearAllHistory,
             ),
         ],
@@ -273,7 +278,7 @@ class _BusScreenState extends State<BusScreen> {
             ),
             child: SearchTextField(
               controller: _searchController,
-              hintText: '搜尋公車路線（如：307、藍1）',
+              hintText: l10n.busSearchHint,
               onChanged: _filterRoutes,
               onClear: () {
                 _searchController.clear();
@@ -299,26 +304,29 @@ class _BusScreenState extends State<BusScreen> {
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Text(
-                    '已記錄 ${_viewHistory.length} 條常看路線',
+                    l10n.busViewCount(_viewHistory.length),
                     style: AppTextStyles.labelSmall.copyWith(
                       color: AppColors.onSurfaceLight,
                     ),
                   ),
                   const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.shade100,
-                      borderRadius: BorderRadius.circular(AppRadius.small),
-                    ),
-                    child: Text(
-                      '顏色越深 = 越常觀看',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: Colors.green.shade800,
-                        fontSize: 10,
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade100,
+                        borderRadius: BorderRadius.circular(AppRadius.small),
+                      ),
+                      child: Text(
+                        l10n.busColorIndicator,
+                        style: AppTextStyles.labelSmall.copyWith(
+                          color: Colors.green.shade800,
+                          fontSize: 10,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
@@ -338,20 +346,22 @@ class _BusScreenState extends State<BusScreen> {
 
   /// 建立路線列表
   Widget _buildRoutesList() {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_filteredRoutes.isEmpty) {
       return EmptyStateCard(
         icon: Icons.directions_bus_outlined,
-        title: '找不到路線',
+        title: l10n.busNoRoutesFound,
         subtitle: _searchController.text.isEmpty
-            ? '目前沒有可用的公車路線資料'
-            : '沒有符合 "${_searchController.text}" 的路線',
+            ? l10n.busNoRoutesEmpty
+            : l10n.busNoRoutesSearch(_searchController.text),
         onAction: _searchController.text.isNotEmpty
             ? () {
                 _searchController.clear();
                 _filterRoutes('');
               }
             : _loadAllRoutes,
-        actionLabel: _searchController.text.isNotEmpty ? '清除搜尋' : '重新載入',
+        actionLabel: _searchController.text.isNotEmpty ? l10n.busClearSearch : l10n.busReload,
       );
     }
 
@@ -514,7 +524,7 @@ class _BusScreenState extends State<BusScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.visibility,
                             size: 14,
                             color: Colors.white,

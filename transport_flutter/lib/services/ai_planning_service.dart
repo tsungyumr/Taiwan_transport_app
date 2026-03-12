@@ -399,8 +399,14 @@ class AIPlanningService {
     required String toLocation,
     required NearbyStations fromStations,
     required NearbyStations toStations,
+    String language = 'zh', // 新增語言參數，預設繁體中文
   }) {
     final buffer = StringBuffer();
+
+    // 根據語言決定回覆語言要求
+    final languageInstruction = language == 'en'
+        ? '請用「英文」回答我。'
+        : '請用「繁體中文」回答我。';
 
     buffer.writeln('請幫我規劃從「$fromLocation」到「$toLocation」的最佳大眾交通工具搭乘方案。');
     buffer.writeln();
@@ -521,7 +527,7 @@ class AIPlanningService {
     buffer.writeln('3. 注意事項（如尖峰時段建議、步行距離、轉乘提醒、捷運班次等）');
     buffer.writeln();
     buffer.writeln('=== 回覆格式要求 ===');
-    buffer.writeln('請用「繁體中文」回答我。');
+    buffer.writeln(languageInstruction);
     buffer.writeln('請使用 RWD HTML5 語法格式回覆，內容需包含在 <html><body>...</body></html> 中。');
     buffer.writeln('CSS 可以使用，但必須是 inline style（直接寫在 HTML 標籤的 style 屬性中）。');
     buffer.writeln('禁止包含外部 CSS 檔案（<link rel="stylesheet">）。');
@@ -551,6 +557,8 @@ class AIPlanningService {
     required String fromLocation,
     required String toLocation,
     Function(String status)? onStatusUpdate, // 新增狀態回調
+    String language = 'zh', // 新增語言參數
+    BuildContext? context, // 新增 context 參數
   }) async {
     // 1. 取得附近站點資訊
     debugPrint('開始取得附近站點資訊...');
@@ -567,6 +575,7 @@ class AIPlanningService {
       toLocation: toLocation,
       fromStations: fromStations,
       toStations: toStations,
+      language: language,
     );
 
     debugPrint('生成的 Prompt:');
@@ -580,7 +589,8 @@ class AIPlanningService {
     await geminiService.reset();
 
     onStatusUpdate?.call('正在詢問 Gemini AI...');
-    final response = await geminiService.sendPrompt(prompt);
+    // 傳遞 context 參數，讓 WebView 可以在需要時顯示登入介面
+    final response = await geminiService.sendPrompt(prompt, context: context);
 
     return response;
   }

@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import '../l10n/app_localizations.dart';
 import '../models/bike_station.dart';
 import '../services/bike_api_service.dart';
 import '../ui_theme.dart';
@@ -39,10 +40,22 @@ class _BikeScreenState extends State<BikeScreen> {
   bool _isLocationLoading = false;
   String? _locationError;
 
+  bool _isInitialized = false;
+
   @override
   void initState() {
     super.initState();
-    _initializeScreen();
+    // 不再這裡初始化，改到 didChangeDependencies
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 在 didChangeDependencies 中初始化，確保 Localizations 可用
+    if (!_isInitialized) {
+      _isInitialized = true;
+      _initializeScreen();
+    }
   }
 
   /// 初始化畫面：先取得 GPS 位置，再載入站點
@@ -53,6 +66,7 @@ class _BikeScreenState extends State<BikeScreen> {
 
   /// 取得當前 GPS 位置
   Future<void> _getCurrentLocation() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isLocationLoading = true);
 
     try {
@@ -60,7 +74,7 @@ class _BikeScreenState extends State<BikeScreen> {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         setState(() {
-          _locationError = '請開啟 GPS 定位服務';
+          _locationError = l10n.bikeGpsDisabled;
           _isLocationLoading = false;
         });
         return;
@@ -72,7 +86,7 @@ class _BikeScreenState extends State<BikeScreen> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           setState(() {
-            _locationError = '需要位置權限才能顯示附近站點';
+            _locationError = l10n.bikePermissionDenied;
             _isLocationLoading = false;
           });
           return;
@@ -81,7 +95,7 @@ class _BikeScreenState extends State<BikeScreen> {
 
       if (permission == LocationPermission.deniedForever) {
         setState(() {
-          _locationError = '位置權限被拒絕，請在設定中開啟';
+          _locationError = l10n.bikePermissionDeniedForever;
           _isLocationLoading = false;
         });
         return;
@@ -101,7 +115,7 @@ class _BikeScreenState extends State<BikeScreen> {
       print('取得 GPS 位置: ${position.latitude}, ${position.longitude}');
     } catch (e) {
       setState(() {
-        _locationError = '取得位置失敗: $e';
+        _locationError = '${l10n.bikeLocationFailed}: $e';
         _isLocationLoading = false;
       });
       print('取得 GPS 位置失敗: $e');
@@ -149,6 +163,7 @@ class _BikeScreenState extends State<BikeScreen> {
 
   /// 載入所有 UBike 站點
   Future<void> _loadStations() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);
 
     try {
@@ -183,11 +198,11 @@ class _BikeScreenState extends State<BikeScreen> {
       // 顯示錯誤提示
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('載入站點失敗: $e'),
+          content: Text('${l10n.bikeLoadFailed}: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
-            label: '重試',
+            label: l10n.bikeRetry,
             onPressed: _loadStations,
           ),
         ),
@@ -233,6 +248,7 @@ class _BikeScreenState extends State<BikeScreen> {
 
   /// 選擇站點（點擊觀看）
   Future<void> _selectStation(BikeStation station) async {
+    final l10n = AppLocalizations.of(context)!;
     if (!mounted) return;
 
     // 關閉任何已開啟的 bottom sheet（切換站點時）
@@ -260,7 +276,7 @@ class _BikeScreenState extends State<BikeScreen> {
         ),
         duration: const Duration(seconds: 2),
         action: SnackBarAction(
-          label: '導航',
+          label: l10n.bikeNavigate,
           onPressed: () => _openNavigation(station),
         ),
       ),
@@ -288,10 +304,12 @@ class _BikeScreenState extends State<BikeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: widget.showAppBar
           ? AppBar(
-              title: const Text('UBike 腳踏車'),
+              title: Text(l10n.bikeTitle),
               backgroundColor: BikeColors.primary,
               foregroundColor: Colors.white,
               elevation: 0,
@@ -334,7 +352,7 @@ class _BikeScreenState extends State<BikeScreen> {
                   // 搜尋欄
                   SearchTextField(
                     controller: _searchController,
-                    hintText: '搜尋站點或地點...',
+                    hintText: l10n.bikeSearchHint,
                     onChanged: _filterStations,
                     onClear: () {
                       _searchController.clear();
@@ -379,6 +397,8 @@ class _BikeScreenState extends State<BikeScreen> {
 
   /// 建立位置資訊顯示
   Widget _buildLocationInfo() {
+    final l10n = AppLocalizations.of(context)!;
+
     if (_isLocationLoading) {
       return Row(
         children: [
@@ -392,7 +412,7 @@ class _BikeScreenState extends State<BikeScreen> {
           ),
           const SizedBox(width: 8),
           Text(
-            '取得位置中...',
+            l10n.bikeGettingLocation,
             style: AppTextStyles.labelSmall.copyWith(
               color: AppColors.onSurfaceLight,
             ),
@@ -421,7 +441,7 @@ class _BikeScreenState extends State<BikeScreen> {
           ),
           TextButton(
             onPressed: _getCurrentLocation,
-            child: const Text('重試'),
+            child: Text(l10n.bikeRetry),
           ),
         ],
       );
@@ -439,8 +459,8 @@ class _BikeScreenState extends State<BikeScreen> {
           Expanded(
             child: Text(
               _searchController.text.isEmpty
-                  ? '顯示距離您最近的 5 個站點'
-                  : '顯示符合搜尋條件的站點（依距離排序）',
+                  ? l10n.bikeShowNearby
+                  : l10n.bikeShowSearchResults,
               style: AppTextStyles.labelSmall.copyWith(
                 color: AppColors.onSurfaceLight,
               ),
@@ -449,7 +469,7 @@ class _BikeScreenState extends State<BikeScreen> {
           ),
           TextButton(
             onPressed: _getCurrentLocation,
-            child: const Text('更新位置'),
+            child: Text(l10n.bikeUpdateLocation),
           ),
         ],
       );
@@ -464,7 +484,7 @@ class _BikeScreenState extends State<BikeScreen> {
         ),
         const SizedBox(width: 8),
         Text(
-          '無法取得位置',
+          l10n.bikeLocationFailed,
           style: AppTextStyles.labelSmall.copyWith(
             color: AppColors.onSurfaceLight,
           ),

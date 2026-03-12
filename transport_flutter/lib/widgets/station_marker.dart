@@ -118,6 +118,7 @@ class LocationButton extends StatelessWidget {
       backgroundColor: Colors.white,
       foregroundColor: AppColors.primary,
       elevation: 4,
+      heroTag: null, // 禁用 Hero 動畫避免衝突
       child: const Icon(Icons.my_location),
     );
   }
@@ -141,6 +142,7 @@ class RefreshButton extends StatelessWidget {
       backgroundColor: Colors.white,
       foregroundColor: AppColors.primary,
       elevation: 4,
+      heroTag: null, // 禁用 Hero 動畫避免衝突
       child: isLoading
           ? const SizedBox(
               width: 20,

@@ -3,6 +3,7 @@ import 'package:motion_tab_bar/MotionTabBar.dart';
 import 'package:motion_tab_bar/MotionTabBarController.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import '../main.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/animated_card.dart';
 import '../widgets/loading_animations.dart';
 import '../widgets/ai_plan_dialog.dart';
@@ -14,6 +15,7 @@ import 'bus_screen.dart';
 import 'railway_screen.dart';
 import 'thsr_screen.dart';
 import 'bike_screen.dart';
+import 'settings_screen.dart';
 
 // 公車 Tab 內容 - 顯示大台北公車入口卡片
 class BusTabContent extends StatelessWidget {
@@ -21,6 +23,8 @@ class BusTabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -32,8 +36,8 @@ class BusTabContent extends StatelessWidget {
             FadeInAnimation(
               delay: const Duration(milliseconds: 100),
               child: TransportCard(
-                title: '大台北公車',
-                subtitle: '查詢台北市、新北市公車路線',
+                title: l10n.busTitle,
+                subtitle: l10n.busSubtitle,
                 icon: Icons.directions_bus,
                 color: TransportColors.bus,
                 onTap: () => Navigator.push(
@@ -107,12 +111,13 @@ class _MainTabScreenState extends State<MainTabScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // 根據當前選中的 tab 決定主題色
     final selectedColor = _tabColors[_motionTabBarController?.index ?? 0];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('交通萬事通'),
+        title: Text(l10n.appTitle),
         centerTitle: true,
         backgroundColor: selectedColor,
         foregroundColor: Colors.white,
@@ -130,8 +135,25 @@ class _MainTabScreenState extends State<MainTabScreen>
             ),
           ),
         ),
+        actions: [
+          // 設定按鈕
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: l10n.commonSettings,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       bottomNavigationBar: Container(
+        key: ValueKey(
+            'motion_tab_bar_${Localizations.localeOf(context).languageCode}'),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
@@ -144,9 +166,9 @@ class _MainTabScreenState extends State<MainTabScreen>
         ),
         child: MotionTabBar(
           controller: _motionTabBarController,
-          initialSelectedTab: "公車",
+          initialSelectedTab: l10n.tabBus,
           useSafeArea: true,
-          labels: const ["公車", "火車", "高鐵", "腳踏車"],
+          labels: [l10n.tabBus, l10n.tabRailway, l10n.tabThsr, l10n.tabBike],
           icons: const [
             Icons.directions_bus,
             Icons.train,
@@ -195,56 +217,62 @@ class _MainTabScreenState extends State<MainTabScreen>
 
   // 建立 SpeedDial 浮動選單
   Widget _buildSpeedDial() {
-    return SpeedDial(
-      // 主按鈕圖標
-      icon: Icons.menu,
-      activeIcon: Icons.close,
-      // 使用黃色主題色
-      backgroundColor: AppColors.primary,
-      foregroundColor: Colors.white,
-      activeBackgroundColor: AppColors.primaryDark,
-      activeForegroundColor: Colors.white,
-      // 動畫設定
-      animationDuration: AppAnimations.normal,
-      animationCurve: AppAnimations.curve,
-      // 展開方向
-      direction: SpeedDialDirection.up,
-      // 遮罩效果
-      renderOverlay: true,
-      overlayColor: Colors.black,
-      overlayOpacity: 0.5,
-      // 是否可見
-      visible: true,
-      // 關閉選單時的行為
-      closeManually: false,
-      // 子選單項目
-      children: [
-        // AI最佳搭乘規劃
-        SpeedDialChild(
-          child: const Icon(Icons.auto_fix_high, color: Colors.white),
-          backgroundColor: AppColors.railway,
-          label: 'AI最佳搭乘規劃',
-          labelStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-          labelBackgroundColor: Colors.white,
-          onTap: () => _onAIFeatureTap(),
-        ),
-        // 遊戲空間
-        SpeedDialChild(
-          child: const Icon(Icons.sports_esports, color: Colors.white),
-          backgroundColor: AppColors.secondary,
-          label: '遊戲空間',
-          labelStyle: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-          labelBackgroundColor: Colors.white,
-          onTap: () => _onGameSpaceTap(),
-        ),
-      ],
-    );
+    final l10n = AppLocalizations.of(context)!;
+
+    return Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        child: SpeedDial(
+          // Hero tag 避免衝突
+          heroTag: 'mainSpeedDial',
+          // 主按圖標
+          icon: Icons.menu,
+          activeIcon: Icons.close,
+          // 使用黃色主題色
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          activeBackgroundColor: AppColors.primaryDark,
+          activeForegroundColor: Colors.white,
+          // 動畫設定
+          animationDuration: AppAnimations.normal,
+          animationCurve: AppAnimations.curve,
+          // 展開方向
+          direction: SpeedDialDirection.up,
+          // 遮罩效果
+          renderOverlay: true,
+          overlayColor: Colors.black,
+          overlayOpacity: 0.5,
+          // 是否可見
+          visible: true,
+          // 關閉選單時的行為
+          closeManually: false,
+          // 子選單項目
+          children: [
+            // AI最佳搭乘規劃
+            SpeedDialChild(
+              child: const Icon(Icons.auto_fix_high, color: Colors.white),
+              backgroundColor: AppColors.railway,
+              label: l10n.aiPlanTitle,
+              labelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+              labelBackgroundColor: Colors.white,
+              onTap: () => _onAIFeatureTap(),
+            ),
+            // 遊戲空間
+            SpeedDialChild(
+              child: const Icon(Icons.sports_esports, color: Colors.white),
+              backgroundColor: AppColors.secondary,
+              label: l10n.gameSpaceTitle,
+              labelStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+              labelBackgroundColor: Colors.white,
+              onTap: () => _onGameSpaceTap(),
+            ),
+          ],
+        ));
   }
 
   // AI最佳搭乘規劃功能
@@ -295,6 +323,11 @@ class _MainTabScreenState extends State<MainTabScreen>
 
   // 開始 AI 規劃
   Future<void> _startAIPlanning(String fromLocation, String toLocation) async {
+    final l10n = AppLocalizations.of(context)!;
+    // 取得當前語言設定
+    final currentLocale = Localizations.localeOf(context);
+    final languageCode = currentLocale.languageCode; // 'zh' 或 'en'
+
     if (_isPlanning) return;
 
     setState(() {
@@ -306,7 +339,7 @@ class _MainTabScreenState extends State<MainTabScreen>
     _cachedToLocation = toLocation;
 
     // 顯示載入中的氣泡
-    AIResultBubble.showLoading(context, message: '正在分析附近交通站點...');
+    AIResultBubble.showLoading(context, message: l10n.aiPlanAnalyzing);
 
     try {
       // 使用 AI 規劃服務執行完整流程
@@ -314,6 +347,8 @@ class _MainTabScreenState extends State<MainTabScreen>
       final response = await _aiPlanningService.performAIPlanning(
         fromLocation: fromLocation,
         toLocation: toLocation,
+        language: languageCode,
+        context: context, // 傳遞 context 參數，讓 WebView 可以在需要時顯示登入介面
       );
 
       // 緩存結果
@@ -344,7 +379,7 @@ class _MainTabScreenState extends State<MainTabScreen>
         // 顯示錯誤結果
         AIResultBubble.show(
           context,
-          result: '規劃失敗：$e\n\n請檢查網路連線或稍後再試。',
+          result: l10n.aiPlanErrorMessage(e.toString()),
           onRetry: () {
             // 清除緩存並重新顯示輸入對話框
             _clearAICacheAndShowDialog();
@@ -360,14 +395,16 @@ class _MainTabScreenState extends State<MainTabScreen>
 
   // 遊戲空間功能
   void _onGameSpaceTap() {
+    final l10n = AppLocalizations.of(context)!;
+
     // 顯示即將推出的提示
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('遊戲空間即將推出！'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content: Text(l10n.gameSpaceComingSoon),
+        duration: const Duration(seconds: 2),
         backgroundColor: AppColors.secondary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(AppRadius.medium)),
         ),
       ),
@@ -403,6 +440,8 @@ class BikeTabView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     // 使用 BikeScreen，隱藏其 AppBar
     return SingleChildScrollView(
       child: Padding(
@@ -415,14 +454,15 @@ class BikeTabView extends StatelessWidget {
             FadeInAnimation(
               delay: const Duration(milliseconds: 100),
               child: TransportCard(
-                title: 'UBike腳踏車',
-                subtitle: '查詢台北市、新北市UBike腳踏車',
+                title: l10n.bikeTitle,
+                subtitle: l10n.bikeSubtitle,
                 icon: Icons.directions_bike,
                 color: TransportColors.bike,
                 onTap: () => Navigator.push(
                   context,
-                  SlidePageRoute(
-                      builder: (_) => const BikeScreen(showAppBar: true)),
+                  MaterialPageRoute(
+                    builder: (_) => const BikeScreen(showAppBar: true),
+                  ),
                 ),
               ),
             ),

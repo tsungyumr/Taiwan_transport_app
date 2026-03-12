@@ -10,6 +10,7 @@ import 'package:geolocator/geolocator.dart';
 import '../models/bike_station.dart';
 import '../services/bike_api_service.dart';
 import '../ui_theme.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/station_marker.dart';
 import '../widgets/station_detail_card.dart';
 
@@ -173,6 +174,7 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
     try {
       _closeStationDetail();
 
+      final l10n = AppLocalizations.of(context)!;
       bool find = false;
       List<LatLng> coords = [];
 
@@ -192,7 +194,7 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
         // 顯示搜尋失敗提示
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('找不到 "$keyword" 的位置'),
+            content: Text(l10n.bikeLocationNotFound(keyword)),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -221,9 +223,10 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('地圖'),
+        title: Text(l10n.bikeMapTitle),
         backgroundColor: BikeColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -235,8 +238,9 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
             mapController: _mapController,
             options: MapOptions(
               initialCenter: _userLocation ??
-                  LatLng(
-                      widget.initialStation!.lat, widget.initialStation!.lng),
+                  (widget.initialStation != null
+                      ? LatLng(widget.initialStation!.lat, widget.initialStation!.lng)
+                      : const LatLng(25.0478, 121.5170)), // 台北車站預設位置
               initialZoom: 16,
               minZoom: 10,
               maxZoom: 18,
@@ -285,6 +289,7 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
               controller: _searchController,
               onSearch: _searchLocation,
               isLoading: _isSearching,
+              hintText: l10n.bikeMapSearchHint,
             ),
           ),
           // 控制按鈕
@@ -323,18 +328,18 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
                 onRent: () {
                   // 租借按鈕動作
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('請使用 YouBike App 掃碼租借'),
-                      duration: Duration(seconds: 2),
+                    SnackBar(
+                      content: Text(l10n.bikeScanToRent),
+                      duration: const Duration(seconds: 2),
                     ),
                   );
                 },
                 onReturn: () {
                   // 還車按鈕動作
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('請將腳踏車歸還至停車柱'),
-                      duration: Duration(seconds: 2),
+                    SnackBar(
+                      content: Text(l10n.bikeReturnToPillar),
+                      duration: const Duration(seconds: 2),
                     ),
                   );
                 },
@@ -351,11 +356,13 @@ class _SearchBar extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSearch;
   final bool isLoading;
+  final String hintText;
 
   const _SearchBar({
     required this.controller,
     required this.onSearch,
     this.isLoading = false,
+    required this.hintText,
   });
 
   @override
@@ -373,7 +380,7 @@ class _SearchBar extends StatelessWidget {
             child: TextField(
               controller: controller,
               decoration: InputDecoration(
-                hintText: '搜尋地點...',
+                hintText: hintText,
                 hintStyle: TextStyle(
                   color: AppColors.onSurfaceLight.withOpacity(0.5),
                 ),

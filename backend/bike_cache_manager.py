@@ -116,7 +116,7 @@ class BikeCacheManager:
             raise
 
     async def _check_and_refresh(self) -> None:
-        """檢查並更新需要重新整理的資料"""
+        """檢查並更新需要重新整理的資料（序列化更新）"""
         current_time = time.time()
 
         for city in DEFAULT_CITIES:
@@ -125,6 +125,8 @@ class BikeCacheManager:
             if current_time - last_stations_update > CACHE_TTL_STATIONS:
                 try:
                     await self.refresh_city_stations(city)
+                    # 請求間增加短暫延遲
+                    await asyncio.sleep(0.5)
                 except Exception as e:
                     logger.error(f"更新 {city} 站點資料失敗: {e}")
 
@@ -133,16 +135,22 @@ class BikeCacheManager:
             if current_time - last_availability_update > CACHE_TTL_AVAILABILITY:
                 try:
                     await self.refresh_city_availability(city)
+                    # 請求間增加短暫延遲
+                    await asyncio.sleep(0.5)
                 except Exception as e:
                     logger.error(f"更新 {city} 車位資訊失敗: {e}")
 
     async def refresh_all_cities(self) -> None:
-        """更新所有支援縣市的資料"""
+        """更新所有支援縣市的資料（序列化更新，避免速率限制）"""
         logger.info("開始更新所有縣市的 UBike 資料")
 
+        # 序列化更新：一次只更新一個縣市，避免觸發速率限制
         for city in DEFAULT_CITIES:
             try:
                 await self.refresh_city_data(city)
+                # 縣市之間增加延遲，避免請求過於密集
+                if city != DEFAULT_CITIES[-1]:  # 如果不是最後一個縣市
+                    await asyncio.sleep(1.0)
             except Exception as e:
                 logger.error(f"更新 {city} 資料失敗: {e}")
                 self._stats['failed_updates'] += 1
@@ -160,11 +168,10 @@ class BikeCacheManager:
         """
         logger.info(f"更新 {city} 的所有資料")
 
-        # 同時更新站點和車位資訊
-        await asyncio.gather(
-            self.refresh_city_stations(city),
-            self.refresh_city_availability(city)
-        )
+        # 序列化更新：先更新站點資料，再更新車位資訊
+        # 避免使用 asyncio.gather 同時發送多個請求，防止觸發 TDX API 速率限制
+        await self.refresh_city_stations(city)
+        await self.refresh_city_availability(city)
 
         # 更新合併資料
         await self._update_merged_data(city)

@@ -43,6 +43,11 @@ class BikeTDXService:
     - 附近站點搜尋
     """
 
+    # 類別層級的請求節流控制（所有實例共享）
+    _last_request_time = 0.0
+    _min_request_interval = 1.0  # 最小請求間隔（秒），增加到 1 秒
+    _lock = asyncio.Lock()  # 用於同步請求節流
+
     def __init__(self, auth: Optional[TDXAuth] = None):
         """
         初始化 UBike 服務
@@ -80,10 +85,10 @@ class BikeTDXService:
         self,
         endpoint: str,
         params: Optional[Dict[str, Any]] = None,
-        max_retries: int = 3,
+        max_retries: int = 5,  # 增加重試次數到 5 次
     ) -> Any:
         """
-        發送 TDX API 請求（支援自動重試）
+        發送 TDX API 請求（支援自動重試與速率限制控制）
 
         Args:
             endpoint: API 端點路徑
@@ -105,8 +110,20 @@ class BikeTDXService:
         params["$format"] = "JSON"
 
         for attempt in range(max_retries):
+            # 使用類別層級的鎖來同步請求節流（所有實例共享）
+            async with self._lock:
+                current_time = time.time()
+                time_since_last = current_time - BikeTDXService._last_request_time
+                if time_since_last < BikeTDXService._min_request_interval:
+                    wait = BikeTDXService._min_request_interval - time_since_last
+                    logger.debug(f"請求節流，等待 {wait:.2f} 秒")
+                    await asyncio.sleep(wait)
+
             try:
                 async with httpx.AsyncClient() as client:
+                    # 更新最後請求時間（在鎖保護下）
+                    async with self._lock:
+                        BikeTDXService._last_request_time = time.time()
                     response = await client.get(
                         url,
                         headers=headers,
@@ -117,8 +134,8 @@ class BikeTDXService:
                     return response.json()
             except httpx.HTTPStatusError as e:
                 if e.response.status_code == 429:
-                    # 速率限制，等待後重試
-                    wait_time = 0.5 * (attempt + 1)  # 漸進式等待
+                    # 速率限制，使用指數退避等待後重試
+                    wait_time = 2 ** attempt  # 1秒, 2秒, 4秒, 8秒, 16秒
                     logger.warning(f"TDX API 速率限制，等待 {wait_time} 秒後重試 ({attempt + 1}/{max_retries})")
                     await asyncio.sleep(wait_time)
                     continue
@@ -232,11 +249,10 @@ class BikeTDXService:
         """
         logger.info(f"取得 {city} 站點與車位合併資訊")
 
-        # 同時取得站點與車位資訊
-        stations, availability = await asyncio.gather(
-            self.get_stations(city),
-            self.get_availability(city)
-        )
+        # 序列化請求：先取得站點資訊，再取得車位資訊
+        # 避免使用 asyncio.gather 同時發送多個請求，防止觸發速率限制
+        stations = await self.get_stations(city)
+        availability = await self.get_availability(city)
 
         # 建立車位資訊對照表
         availability_map = {

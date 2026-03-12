@@ -1,4 +1,4 @@
-package com.taiwan.transport_flutter
+package com.zaizaicat.transportapp
 
 import io.flutter.embedding.android.FlutterActivity
 

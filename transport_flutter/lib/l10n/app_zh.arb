@@ -1,0 +1,713 @@
+{
+  "@@locale": "zh",
+  "@@author": "Taiwan Transport App",
+  "appTitle": "交通萬事通",
+  "@appTitle": {
+    "description": "App 名稱"
+  },
+
+  "tabBus": "公車",
+  "@tabBus": {
+    "description": "公車 Tab 標籤"
+  },
+  "tabRailway": "火車",
+  "@tabRailway": {
+    "description": "火車 Tab 標籤"
+  },
+  "tabThsr": "高鐵",
+  "@tabThsr": {
+    "description": "高鐵 Tab 標籤"
+  },
+  "tabBike": "腳踏車",
+  "@tabBike": {
+    "description": "腳踏車 Tab 標籤"
+  },
+
+  "busTitle": "大台北公車",
+  "@busTitle": {
+    "description": "公車頁面標題"
+  },
+  "busSearchHint": "搜尋公車路線（如：307、藍1）",
+  "@busSearchHint": {
+    "description": "公車搜尋提示"
+  },
+  "busSubtitle": "查詢台北市、新北平市公車路線",
+  "@busSubtitle": {
+    "description": "公車功能副標題"
+  },
+  "busClearHistory": "清除觀看歷史",
+  "@busClearHistory": {
+    "description": "清除觀看歷史按鈕"
+  },
+  "busClearHistoryConfirmTitle": "清除觀看歷史",
+  "@busClearHistoryConfirmTitle": {
+    "description": "清除歷史確認對話框標題"
+  },
+  "busClearHistoryConfirmContent": "確定要清除所有路線觀看記錄嗎？",
+  "@busClearHistoryConfirmContent": {
+    "description": "清除歷史確認對話框內容"
+  },
+  "busHistoryCleared": "觀看歷史已清除",
+  "@busHistoryCleared": {
+    "description": "歷史清除成功提示"
+  },
+  "busViewCount": "已記錄 {count} 條常看路線",
+  "@busViewCount": {
+    "description": "觀看統計文字",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "busColorIndicator": "顏色越深 = 越常觀看",
+  "@busColorIndicator": {
+    "description": "顏色指示說明"
+  },
+  "busNoRoutesFound": "找不到路線",
+  "@busNoRoutesFound": {
+    "description": "找不到路線提示"
+  },
+  "busNoRoutesEmpty": "目前沒有可用的公車路線資料",
+  "@busNoRoutesEmpty": {
+    "description": "無路線資料提示"
+  },
+  "busNoRoutesSearch": "沒有符合 \"{query}\" 的路線",
+  "@busNoRoutesSearch": {
+    "description": "搜尋無結果提示",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "busClearSearch": "清除搜尋",
+  "@busClearSearch": {
+    "description": "清除搜尋按鈕"
+  },
+  "busReload": "重新載入",
+  "@busReload": {
+    "description": "重新載入按鈕"
+  },
+  "busTooltipClearHistory": "清除觀看歷史",
+  "@busTooltipClearHistory": {
+    "description": "清除歷史按鈕提示"
+  },
+
+  "railwayTitle": "台鐵時刻表",
+  "@railwayTitle": {
+    "description": "台鐵頁面標題"
+  },
+  "railwayFromCity": "出發縣市",
+  "@railwayFromCity": {
+    "description": "出發縣市標籤"
+  },
+  "railwayFromStation": "出發站",
+  "@railwayFromStation": {
+    "description": "出發站標籤"
+  },
+  "railwayToCity": "抵達縣市",
+  "@railwayToCity": {
+    "description": "抵達縣市標籤"
+  },
+  "railwayToStation": "抵達站",
+  "@railwayToStation": {
+    "description": "抵達站標籤"
+  },
+  "railwayAllCities": "全部縣市",
+  "@railwayAllCities": {
+    "description": "全部縣市選項"
+  },
+  "railwaySelectFromStation": "請選擇出發站",
+  "@railwaySelectFromStation": {
+    "description": "請選擇出發站提示"
+  },
+  "railwaySelectToStation": "請選擇抵達站",
+  "@railwaySelectToStation": {
+    "description": "請選擇抵達站提示"
+  },
+  "railwayToday": "當天",
+  "@railwayToday": {
+    "description": "當天選項"
+  },
+  "railwayCustomTime": "自訂時間",
+  "@railwayCustomTime": {
+    "description": "自訂時間選項"
+  },
+  "railwayDepartureDate": "出發日期",
+  "@railwayDepartureDate": {
+    "description": "出發日期標籤"
+  },
+  "railwayTimeRange": "時間範圍",
+  "@railwayTimeRange": {
+    "description": "時間範圍標籤"
+  },
+  "railwayStart": "起始",
+  "@railwayStart": {
+    "description": "起始時間標籤"
+  },
+  "railwayEnd": "結束",
+  "@railwayEnd": {
+    "description": "結束時間標籤"
+  },
+  "railwayTrainTypeFilter": "車種篩選",
+  "@railwayTrainTypeFilter": {
+    "description": "車種篩選標籤"
+  },
+  "railwayTrainTypeAll": "全部",
+  "@railwayTrainTypeAll": {
+    "description": "全部車種"
+  },
+  "railwayTrainTypeExpress": "自強號",
+  "@railwayTrainTypeExpress": {
+    "description": "自強號車種"
+  },
+  "railwayTrainTypeChuKuang": "莒光號",
+  "@railwayTrainTypeChuKuang": {
+    "description": "莒光號車種"
+  },
+  "railwayTrainTypeLocal": "區間車",
+  "@railwayTrainTypeLocal": {
+    "description": "區間車車種"
+  },
+  "railwayTrainTypeLocalFast": "區間快車",
+  "@railwayTrainTypeLocalFast": {
+    "description": "區間快車車種"
+  },
+  "railwayTrainTypeTaroko": "太魯閣號",
+  "@railwayTrainTypeTaroko": {
+    "description": "太魯閣號車種"
+  },
+  "railwayTrainTypePuyuma": "普悠瑪號",
+  "@railwayTrainTypePuyuma": {
+    "description": "普悠瑪號車種"
+  },
+  "railwaySearchButton": "查詢時刻表",
+  "@railwaySearchButton": {
+    "description": "查詢時刻表按鈕"
+  },
+  "railwayTrainsFound": "找到 {count} 班次",
+  "@railwayTrainsFound": {
+    "description": "找到班次統計",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "railwayEmptyTitle": "請選擇站點並查詢時刻表",
+  "@railwayEmptyTitle": {
+    "description": "空狀態標題"
+  },
+  "railwayEmptySubtitle": "選擇出發站與抵達站，查看台鐵班次資訊",
+  "@railwayEmptySubtitle": {
+    "description": "空狀態副標題"
+  },
+  "railwaySelectStationsError": "請選擇出發站與抵達站",
+  "@railwaySelectStationsError": {
+    "description": "選擇站點錯誤提示"
+  },
+  "railwaySearchConditions": "搜尋條件",
+  "@railwaySearchConditions": {
+    "description": "搜尋條件標題"
+  },
+  "railwayAllDay": "全天",
+  "@railwayAllDay": {
+    "description": "全天時間範圍"
+  },
+
+  "thsrTitle": "台灣高鐵",
+  "@thsrTitle": {
+    "description": "高鐵頁面標題"
+  },
+  "thsrSearchButton": "查詢時刻表",
+  "@thsrSearchButton": {
+    "description": "查詢時刻表按鈕"
+  },
+  "thsrTrainsFound": "找到 {count} 班次",
+  "@thsrTrainsFound": {
+    "description": "找到班次統計",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "thsrEmptyTitle": "請選擇站點並查詢時刻表",
+  "@thsrEmptyTitle": {
+    "description": "空狀態標題"
+  },
+  "thsrEmptySubtitle": "選擇出發站與抵達站，查看高鐵班次資訊",
+  "@thsrEmptySubtitle": {
+    "description": "空狀態副標題"
+  },
+  "thsrSelectStationsError": "請選擇出發站與抵達站",
+  "@thsrSelectStationsError": {
+    "description": "選擇站點錯誤提示"
+  },
+  "thsrSeatBusiness": "商務",
+  "@thsrSeatBusiness": {
+    "description": "商務座"
+  },
+  "thsrSeatStandard": "標準",
+  "@thsrSeatStandard": {
+    "description": "標準座"
+  },
+  "thsrSeatFree": "自由",
+  "@thsrSeatFree": {
+    "description": "自由座"
+  },
+
+  "bikeTitle": "UBike 腳踏車",
+  "@bikeTitle": {
+    "description": "腳踏車頁面標題"
+  },
+  "bikeSubtitle": "查詢台北市、新北市 UBike 腳踏車",
+  "@bikeSubtitle": {
+    "description": "腳踏車功能副標題"
+  },
+  "bikeSearchHint": "搜尋站點或地點...",
+  "@bikeSearchHint": {
+    "description": "腳踏車搜尋提示"
+  },
+  "bikeGettingLocation": "取得位置中...",
+  "@bikeGettingLocation": {
+    "description": "取得位置中提示"
+  },
+  "bikeGpsDisabled": "請開啟 GPS 定位服務",
+  "@bikeGpsDisabled": {
+    "description": "GPS 未啟用提示"
+  },
+  "bikePermissionDenied": "需要位置權限才能顯示附近站點",
+  "@bikePermissionDenied": {
+    "description": "位置權限被拒絕提示"
+  },
+  "bikePermissionDeniedForever": "位置權限被拒絕，請在設定中開啟",
+  "@bikePermissionDeniedForever": {
+    "description": "位置權限永久拒絕提示"
+  },
+  "bikeLocationFailed": "無法取得位置",
+  "@bikeLocationFailed": {
+    "description": "無法取得位置提示"
+  },
+  "bikeShowNearby": "顯示距離您最近的 5 個站點",
+  "@bikeShowNearby": {
+    "description": "顯示附近站點提示"
+  },
+  "bikeShowSearchResults": "顯示符合搜尋條件的站點（依距離排序）",
+  "@bikeShowSearchResults": {
+    "description": "顯示搜尋結果提示"
+  },
+  "bikeRetry": "重試",
+  "@bikeRetry": {
+    "description": "重試按鈕"
+  },
+  "bikeUpdateLocation": "更新位置",
+  "@bikeUpdateLocation": {
+    "description": "更新位置按鈕"
+  },
+  "bikeNavigate": "導航",
+  "@bikeNavigate": {
+    "description": "導航按鈕"
+  },
+  "bikeLoadFailed": "載入站點失敗",
+  "@bikeLoadFailed": {
+    "description": "載入站點失敗提示"
+  },
+
+  "aiPlanTitle": "AI最佳搭乘規劃",
+  "@aiPlanTitle": {
+    "description": "AI規劃功能標題"
+  },
+  "aiPlanAnalyzing": "正在分析附近交通站點...",
+  "@aiPlanAnalyzing": {
+    "description": "AI分析中提示"
+  },
+  "aiPlanFailed": "規劃失敗",
+  "@aiPlanFailed": {
+    "description": "規劃失敗提示"
+  },
+  "aiPlanErrorMessage": "規劃失敗：{error}\n\n請檢查網路連線或稍後再試。",
+  "@aiPlanErrorMessage": {
+    "description": "規劃錯誤訊息",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "gameSpaceTitle": "遊戲空間",
+  "@gameSpaceTitle": {
+    "description": "遊戲空間功能標題"
+  },
+  "gameSpaceComingSoon": "遊戲空間即將推出！",
+  "@gameSpaceComingSoon": {
+    "description": "遊戲空間即將推出提示"
+  },
+
+  "commonCancel": "取消",
+  "@commonCancel": {
+    "description": "取消按鈕"
+  },
+  "commonConfirm": "確定",
+  "@commonConfirm": {
+    "description": "確定按鈕"
+  },
+  "commonClear": "清除",
+  "@commonClear": {
+    "description": "清除按鈕"
+  },
+  "commonSearch": "搜尋",
+  "@commonSearch": {
+    "description": "搜尋按鈕"
+  },
+  "commonToday": "今天",
+  "@commonToday": {
+    "description": "今天"
+  },
+  "commonSettings": "設定",
+  "@commonSettings": {
+    "description": "設定"
+  },
+  "commonLanguage": "語言",
+  "@commonLanguage": {
+    "description": "語言設定標題"
+  },
+  "languageZh": "繁體中文",
+  "@languageZh": {
+    "description": "繁體中文語系名稱"
+  },
+  "languageEn": "English",
+  "@languageEn": {
+    "description": "英文語系名稱"
+  },
+  "selectLanguage": "選擇語言",
+  "@selectLanguage": {
+    "description": "選擇語言標題"
+  },
+  "languageSubtitle": "選擇您偏好的顯示語言",
+  "@languageSubtitle": {
+    "description": "語言設定副標題"
+  },
+  "appInfoTitle": "App 資訊",
+  "@appInfoTitle": {
+    "description": "App 資訊標題"
+  },
+  "appInfoName": "名稱",
+  "@appInfoName": {
+    "description": "App 名稱標籤"
+  },
+  "appInfoVersion": "版本",
+  "@appInfoVersion": {
+    "description": "App 版本標籤"
+  },
+  "appInfoDataSource": "資料來源",
+  "@appInfoDataSource": {
+    "description": "資料來源標籤"
+  },
+  "appInfoDataSourceValue": "TDX 運輸資料流通服務平台",
+  "@appInfoDataSourceValue": {
+    "description": "資料來源值"
+  },
+
+  "bikeMapTitle": "地圖",
+  "@bikeMapTitle": {
+    "description": "Bike map 頁面標題"
+  },
+  "bikeMapSearchHint": "搜尋地點...",
+  "@bikeMapSearchHint": {
+    "description": "Bike map 搜尋提示"
+  },
+
+  "bikeNoStations": "暫無站點資料",
+  "@bikeNoStations": {
+    "description": "UBike 無站點資料提示"
+  },
+  "bikeNoStationsData": "目前沒有可用的 UBike 站點資料",
+  "@bikeNoStationsData": {
+    "description": "UBike 無資料提示"
+  },
+  "bikeNoMatchingStations": "沒有符合 \"{query}\" 的站點",
+  "@bikeNoMatchingStations": {
+    "description": "搜尋無結果提示",
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "bikeUnableGetLocation": "無法取得位置",
+  "@bikeUnableGetLocation": {
+    "description": "無法取得位置提示"
+  },
+  "bikeCheckGps": "請確認 GPS 已開啟並允許位置權限",
+  "@bikeCheckGps": {
+    "description": "確認 GPS 提示"
+  },
+  "bikeClearSearch": "清除搜尋",
+  "@bikeClearSearch": {
+    "description": "清除搜尋按鈕"
+  },
+  "bikeRetryLocation": "重試取得位置",
+  "@bikeRetryLocation": {
+    "description": "重試取得位置按鈕"
+  },
+  "bikeReload": "重新載入",
+  "@bikeReload": {
+    "description": "重新載入按鈕"
+  },
+  "bikeTotalStations": "共 {count} 個站點",
+  "@bikeTotalStations": {
+    "description": "總站點數統計",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bikeRecordedStations": "已記錄 {count} 個常用站點",
+  "@bikeRecordedStations": {
+    "description": "常用站點統計",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bikeUpdatedAt": "更新於 {time}",
+  "@bikeUpdatedAt": {
+    "description": "更新時間顯示",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "bikeJustNow": "剛剛",
+  "@bikeJustNow": {
+    "description": "剛剛更新"
+  },
+  "bikeMinutesAgo": "{minutes} 分鐘前",
+  "@bikeMinutesAgo": {
+    "description": "分鐘前",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "bikeHoursAgo": "{hours} 小時前",
+  "@bikeHoursAgo": {
+    "description": "小時前",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "bikeAvailable": "可借",
+  "@bikeAvailable": {
+    "description": "可借車輛"
+  },
+  "bikeStations": "站點",
+  "@bikeStations": {
+    "description": "站點文字"
+  },
+
+  "aiPlanDialogTitle": "AI 交通規劃",
+  "@aiPlanDialogTitle": {
+    "description": "AI 規劃對話框標題"
+  },
+  "aiPlanDialogSubtitle": "讓 Gemini AI 幫您規劃最佳路線",
+  "@aiPlanDialogSubtitle": {
+    "description": "AI 規劃對話框副標題"
+  },
+  "aiPlanFromLocation": "出發地",
+  "@aiPlanFromLocation": {
+    "description": "出發地標籤"
+  },
+  "aiPlanFromHint": "輸入出發地點或抓取 GPS",
+  "@aiPlanFromHint": {
+    "description": "出發地提示"
+  },
+  "aiPlanToLocation": "目的地",
+  "@aiPlanToLocation": {
+    "description": "目的地標籤"
+  },
+  "aiPlanToHint": "輸入目的地或抓取 GPS",
+  "@aiPlanToHint": {
+    "description": "目的地提示"
+  },
+  "aiPlanStartButton": "開始規劃",
+  "@aiPlanStartButton": {
+    "description": "開始規劃按鈕"
+  },
+  "aiPlanLoadingMessage": "Gemini AI 正在規劃您的路線...",
+  "@aiPlanLoadingMessage": {
+    "description": "AI 規劃載入訊息"
+  },
+  "aiPlanLoadingSubtitle": "這可能需要幾秒鐘",
+  "@aiPlanLoadingSubtitle": {
+    "description": "AI 規劃載入副標題"
+  },
+  "aiPlanGpsDisabled": "請先開啟定位服務",
+  "@aiPlanGpsDisabled": {
+    "description": "GPS 未開啟提示"
+  },
+  "aiPlanPermissionDenied": "需要定位權限才能使用此功能",
+  "@aiPlanPermissionDenied": {
+    "description": "定位權限被拒提示"
+  },
+  "aiPlanPermissionDeniedForever": "定位權限已被永久拒絕，請在設定中開啟",
+  "@aiPlanPermissionDeniedForever": {
+    "description": "定位權限永久拒絕提示"
+  },
+  "aiPlanLocationError": "無法取得位置：{error}",
+  "@aiPlanLocationError": {
+    "description": "取得位置錯誤訊息",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "aiPlanFillLocation": "請填寫出發地和目的地",
+  "@aiPlanFillLocation": {
+    "description": "填寫地點提示"
+  },
+  "geminiLoginRequired": "需要登入 Gemini",
+  "@geminiLoginRequired": {
+    "description": "Gemini 登入對話框標題"
+  },
+  "geminiLoginMessage": "使用 AI 規劃功能需要先登入 Gemini。\n\n請點擊「開啟登入頁面」並在開啟的網頁中登入您的 Google 帳號。\n登入完成後請返回 App 繼續使用。",
+  "@geminiLoginMessage": {
+    "description": "Gemini 登入對話框內容"
+  },
+  "geminiLoginButton": "開啟登入頁面",
+  "@geminiLoginButton": {
+    "description": "開啟登入頁面按鈕"
+  },
+  "geminiLoginTitle": "登入 Gemini",
+  "@geminiLoginTitle": {
+    "description": "Gemini 登入頁面標題"
+  },
+  "geminiLoginAutoReturn": "登入完成後將自動返回",
+  "@geminiLoginAutoReturn": {
+    "description": "Gemini 登入頁面副標題"
+  },
+  "geminiLoginComplete": "完成",
+  "@geminiLoginComplete": {
+    "description": "Gemini 登入完成按鈕"
+  },
+
+  "locationPickerTitle": "選擇地點",
+  "@locationPickerTitle": {
+    "description": "地圖選點對話框標題"
+  },
+  "locationPickerSubtitle": "點擊地圖選擇位置",
+  "@locationPickerSubtitle": {
+    "description": "地圖選點副標題"
+  },
+  "locationPickerSelected": "已選擇: {lat}, {lng}",
+  "@locationPickerSelected": {
+    "description": "已選擇位置座標",
+    "placeholders": {
+      "lat": {"type": "String"},
+      "lng": {"type": "String"}
+    }
+  },
+  "locationPickerHint": "點擊地圖選擇位置",
+  "@locationPickerHint": {
+    "description": "地圖選點提示文字"
+  },
+  "locationPickerConfirmSelection": "確認選擇",
+  "@locationPickerConfirmSelection": {
+    "description": "確認選擇按鈕"
+  },
+  "locationPickerConfirmTitle": "確認選擇",
+  "@locationPickerConfirmTitle": {
+    "description": "確認對話框標題"
+  },
+  "locationPickerConfirmMessage": "確定要選擇這個座標嗎？",
+  "@locationPickerConfirmMessage": {
+    "description": "確認對話框訊息"
+  },
+  "locationPickerLatitude": "緯度",
+  "@locationPickerLatitude": {
+    "description": "緯度標籤"
+  },
+  "locationPickerLongitude": "經度",
+  "@locationPickerLongitude": {
+    "description": "經度標籤"
+  },
+  "locationPickerReSelect": "重新選擇",
+  "@locationPickerReSelect": {
+    "description": "重新選擇按鈕"
+  },
+
+  "aiResultTitle": "AI 規劃結果",
+  "@aiResultTitle": {
+    "description": "AI 規劃結果標題"
+  },
+  "aiResultPlanning": "規劃中...",
+  "@aiResultPlanning": {
+    "description": "AI 規劃中標題"
+  },
+  "aiResultGeneratedBy": "由 Gemini AI 生成",
+  "@aiResultGeneratedBy": {
+    "description": "AI 結果生成者標籤"
+  },
+  "aiResultRetry": "重新規劃",
+  "@aiResultRetry": {
+    "description": "重新規劃按鈕"
+  },
+  "aiResultLoadingSubtitle": "這可能需要幾秒鐘",
+  "@aiResultLoadingSubtitle": {
+    "description": "AI 結果載入副標題"
+  },
+  "aiResultDisclaimer": "以上資訊由 AI 生成，實際交通狀況可能有所不同，請以現場為準。",
+  "@aiResultDisclaimer": {
+    "description": "AI 結果免責聲明"
+  },
+  "aiResultPlanningMessage": "AI 正在規劃路線...",
+  "@aiResultPlanningMessage": {
+    "description": "AI 規劃預設訊息"
+  },
+
+  "bikeLocationNotFound": "找不到 \"{keyword}\" 的位置",
+  "@bikeLocationNotFound": {
+    "description": "找不到位置訊息",
+    "placeholders": {
+      "keyword": {"type": "String"}
+    }
+  },
+  "bikeScanToRent": "請使用 YouBike App 掃碼租借",
+  "@bikeScanToRent": {
+    "description": "掃碼租借訊息"
+  },
+  "bikeReturnToPillar": "請將腳踏車歸還至停車柱",
+  "@bikeReturnToPillar": {
+    "description": "歸還腳踏車訊息"
+  },
+  "bikeRent": "租借",
+  "@bikeRent": {
+    "description": "租借按鈕"
+  },
+  "bikeReturn": "還車",
+  "@bikeReturn": {
+    "description": "還車按鈕"
+  },
+  "bikeAvailableBikes": "剩餘車輛",
+  "@bikeAvailableBikes": {
+    "description": "剩餘車輛標籤"
+  },
+  "bikeEmptySlots": "空位數",
+  "@bikeEmptySlots": {
+    "description": "空位數標籤"
+  },
+  "bikeDistance": "距離",
+  "@bikeDistance": {
+    "description": "距離標籤"
+  }
+}

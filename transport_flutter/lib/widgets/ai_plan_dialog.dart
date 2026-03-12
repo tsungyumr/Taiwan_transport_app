@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import '../../l10n/app_localizations.dart';
 import '../../ui_theme.dart';
 import '../../widgets/styled_inputs.dart';
 import 'location_picker_map.dart';
@@ -124,8 +125,9 @@ class _AIPlanDialogState extends State<AIPlanDialog> {
       // 檢查定位服務是否啟用
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
-          _gpsError = '請先開啟定位服務';
+          _gpsError = l10n.aiPlanGpsDisabled;
           _isLoading = false;
         });
         return;
@@ -136,8 +138,9 @@ class _AIPlanDialogState extends State<AIPlanDialog> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
+          final l10n = AppLocalizations.of(context)!;
           setState(() {
-            _gpsError = '需要定位權限才能使用此功能';
+            _gpsError = l10n.aiPlanPermissionDenied;
             _isLoading = false;
           });
           return;
@@ -145,8 +148,9 @@ class _AIPlanDialogState extends State<AIPlanDialog> {
       }
 
       if (permission == LocationPermission.deniedForever) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() {
-          _gpsError = '定位權限已被永久拒絕，請在設定中開啟';
+          _gpsError = l10n.aiPlanPermissionDeniedForever;
           _isLoading = false;
         });
         return;
@@ -165,8 +169,9 @@ class _AIPlanDialogState extends State<AIPlanDialog> {
         _isLoading = false;
       });
     } catch (e) {
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _gpsError = '無法取得位置：$e';
+        _gpsError = l10n.aiPlanLocationError(e.toString());
         _isLoading = false;
       });
     }
@@ -178,9 +183,10 @@ class _AIPlanDialogState extends State<AIPlanDialog> {
     final toLocation = _toController.text.trim();
 
     if (fromLocation.isEmpty || toLocation.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('請填寫出發地和目的地'),
+        SnackBar(
+          content: Text(l10n.aiPlanFillLocation),
           backgroundColor: AppColors.error,
         ),
       );
@@ -193,6 +199,7 @@ class _AIPlanDialogState extends State<AIPlanDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.background,
@@ -241,13 +248,13 @@ class _AIPlanDialogState extends State<AIPlanDialog> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'AI 交通規劃',
+                        l10n.aiPlanDialogTitle,
                         style: AppTextStyles.titleLarge.copyWith(
                           color: AppColors.onSurface,
                         ),
                       ),
                       Text(
-                        '讓 Gemini AI 幫您規劃最佳路線',
+                        l10n.aiPlanDialogSubtitle,
                         style: AppTextStyles.bodySmall,
                       ),
                     ],
@@ -274,8 +281,8 @@ class _AIPlanDialogState extends State<AIPlanDialog> {
                     Expanded(
                       child: StyledTextField(
                         controller: _fromController,
-                        labelText: '出發地',
-                        hintText: '輸入出發地點或抓取 GPS',
+                        labelText: l10n.aiPlanFromLocation,
+                        hintText: l10n.aiPlanFromHint,
                         prefixIcon: Icons.location_on,
                       ),
                     ),
@@ -359,8 +366,8 @@ class _AIPlanDialogState extends State<AIPlanDialog> {
                     Expanded(
                       child: StyledTextField(
                         controller: _toController,
-                        labelText: '目的地',
-                        hintText: '輸入目的地或抓取GPS',
+                        labelText: l10n.aiPlanToLocation,
+                        hintText: l10n.aiPlanToHint,
                         prefixIcon: Icons.flag,
                       ),
                     ),
@@ -385,9 +392,9 @@ class _AIPlanDialogState extends State<AIPlanDialog> {
                   child: ElevatedButton.icon(
                     onPressed: _submit,
                     icon: const Icon(Icons.auto_fix_high),
-                    label: const Text(
-                      '開始規劃',
-                      style: TextStyle(
+                    label: Text(
+                      l10n.aiPlanStartButton,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -414,15 +421,18 @@ class _AIPlanDialogState extends State<AIPlanDialog> {
 /// AI 規劃載入遮罩
 /// 顯示在 AI 處理中的全螢幕載入畫面
 class AIPlanLoadingOverlay extends StatelessWidget {
-  final String message;
+  final String? message;
 
   const AIPlanLoadingOverlay({
     super.key,
-    this.message = 'Gemini AI 正在規劃您的路線...',
+    this.message,
   });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final displayMessage = message ?? l10n.aiPlanLoadingMessage;
+
     return Container(
       color: Colors.black.withOpacity(0.5),
       child: Center(
@@ -472,7 +482,7 @@ class AIPlanLoadingOverlay extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               // 提示文字
               Text(
-                message,
+                displayMessage,
                 style: AppTextStyles.titleMedium.copyWith(
                   color: AppColors.onSurface,
                 ),
@@ -480,7 +490,7 @@ class AIPlanLoadingOverlay extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                '這可能需要幾秒鐘',
+                l10n.aiPlanLoadingSubtitle,
                 style: AppTextStyles.bodySmall,
               ),
             ],

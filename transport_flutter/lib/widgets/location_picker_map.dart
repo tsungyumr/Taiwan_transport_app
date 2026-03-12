@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../l10n/app_localizations.dart';
 import '../ui_theme.dart';
 
 /// 地圖選點對話框
@@ -40,6 +41,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // 預設中心點（台北市中心）
     final centerPoint = widget.initialCenter ?? LatLng(25.0330, 121.5654);
 
@@ -77,13 +79,13 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '選擇地點',
+                          l10n.locationPickerTitle,
                           style: AppTextStyles.titleLarge.copyWith(
                             color: AppColors.onSurface,
                           ),
                         ),
                         Text(
-                          '點擊地圖選擇位置',
+                          l10n.locationPickerSubtitle,
                           style: AppTextStyles.bodySmall,
                         ),
                       ],
@@ -201,7 +203,10 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
-                              '已選擇: ${_selectedLocation!.latitude.toStringAsFixed(4)}, ${_selectedLocation!.longitude.toStringAsFixed(4)}',
+                              l10n.locationPickerSelected(
+                                _selectedLocation!.latitude.toStringAsFixed(4),
+                                _selectedLocation!.longitude.toStringAsFixed(4),
+                              ),
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: AppColors.onSurface,
                               ),
@@ -229,7 +234,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
-                              '點擊地圖選擇位置',
+                              l10n.locationPickerHint,
                               style: AppTextStyles.bodyMedium.copyWith(
                                 color: Colors.grey[600],
                               ),
@@ -246,7 +251,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                       Expanded(
                         child: TextButton(
                           onPressed: () => Navigator.pop(context, null),
-                          child: const Text('取消'),
+                          child: Text(l10n.commonCancel),
                         ),
                       ),
                       const SizedBox(width: AppSpacing.sm),
@@ -258,7 +263,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                               ? () => _showConfirmDialog()
                               : null,
                           icon: const Icon(Icons.check, size: 18),
-                          label: const Text('確認選擇'),
+                          label: Text(l10n.locationPickerConfirmSelection),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
@@ -284,6 +289,8 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
   void _showConfirmDialog() {
     if (_selectedLocation == null) return;
 
+    final l10n = AppLocalizations.of(context)!;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -294,7 +301,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
           children: [
             Icon(Icons.check_circle, color: AppColors.primary),
             const SizedBox(width: AppSpacing.sm),
-            const Text('確認選擇'),
+            Text(l10n.locationPickerConfirmTitle),
           ],
         ),
         content: Column(
@@ -302,7 +309,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '確定要選擇這個座標嗎？',
+              l10n.locationPickerConfirmMessage,
               style: AppTextStyles.bodyLarge,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -319,13 +326,13 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '緯度: ${_selectedLocation!.latitude.toStringAsFixed(6)}',
+                    '${l10n.locationPickerLatitude}: ${_selectedLocation!.latitude.toStringAsFixed(6)}',
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   Text(
-                    '經度: ${_selectedLocation!.longitude.toStringAsFixed(6)}',
+                    '${l10n.locationPickerLongitude}: ${_selectedLocation!.longitude.toStringAsFixed(6)}',
                     style: AppTextStyles.bodyMedium.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
@@ -338,7 +345,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('重新選擇'),
+            child: Text(l10n.locationPickerReSelect),
           ),
           ElevatedButton.icon(
             onPressed: () {
@@ -346,7 +353,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
               Navigator.pop(context, _selectedLocation); // 關閉地圖對話框並返回結果
             },
             icon: const Icon(Icons.check, size: 18),
-            label: const Text('確定'),
+            label: Text(l10n.commonConfirm),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
