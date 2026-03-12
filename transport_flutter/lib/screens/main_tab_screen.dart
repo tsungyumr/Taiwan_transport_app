@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:motion_tab_bar/MotionTabBar.dart';
 import 'package:motion_tab_bar/MotionTabBarController.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import '../main.dart';
 import '../widgets/animated_card.dart';
 import '../widgets/loading_animations.dart';
+import '../widgets/ai_plan_dialog.dart';
+import '../widgets/ai_result_bubble.dart';
+import '../services/gemini_webview_service.dart';
+import '../services/ai_planning_service.dart';
 import '../ui_theme.dart';
-import 'bike_map_screen.dart';
 import 'bus_screen.dart';
 import 'railway_screen.dart';
 import 'thsr_screen.dart';
@@ -56,6 +60,17 @@ class _MainTabScreenState extends State<MainTabScreen>
     with TickerProviderStateMixin {
   MotionTabBarController? _motionTabBarController;
 
+  // Gemini WebView 服務
+  final GeminiWebViewService _geminiService = GeminiWebViewService();
+  // AI 規劃服務
+  final AIPlanningService _aiPlanningService = AIPlanningService();
+  bool _isPlanning = false;
+
+  // 緩存上次 AI 規劃結果
+  String? _cachedAIResult;
+  String? _cachedFromLocation;
+  String? _cachedToLocation;
+
   // 定義每個 tab 的主題色 - 使用黃色系內的協調色
   final List<Color> _tabColors = [
     TransportColors.bus, // 公車：草綠色（與黃色協調）
@@ -77,6 +92,7 @@ class _MainTabScreenState extends State<MainTabScreen>
   @override
   void dispose() {
     _motionTabBarController?.dispose();
+    _geminiService.dispose();
     super.dispose();
   }
 
@@ -171,6 +187,189 @@ class _MainTabScreenState extends State<MainTabScreen>
           // 腳踏車 tab 內容
           BikeTabView(),
         ],
+      ),
+      // 全局浮動操作按鈕選單
+      floatingActionButton: _buildSpeedDial(),
+    );
+  }
+
+  // 建立 SpeedDial 浮動選單
+  Widget _buildSpeedDial() {
+    return SpeedDial(
+      // 主按鈕圖標
+      icon: Icons.menu,
+      activeIcon: Icons.close,
+      // 使用黃色主題色
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
+      activeBackgroundColor: AppColors.primaryDark,
+      activeForegroundColor: Colors.white,
+      // 動畫設定
+      animationDuration: AppAnimations.normal,
+      animationCurve: AppAnimations.curve,
+      // 展開方向
+      direction: SpeedDialDirection.up,
+      // 遮罩效果
+      renderOverlay: true,
+      overlayColor: Colors.black,
+      overlayOpacity: 0.5,
+      // 是否可見
+      visible: true,
+      // 關閉選單時的行為
+      closeManually: false,
+      // 子選單項目
+      children: [
+        // AI最佳搭乘規劃
+        SpeedDialChild(
+          child: const Icon(Icons.auto_fix_high, color: Colors.white),
+          backgroundColor: AppColors.railway,
+          label: 'AI最佳搭乘規劃',
+          labelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+          labelBackgroundColor: Colors.white,
+          onTap: () => _onAIFeatureTap(),
+        ),
+        // 遊戲空間
+        SpeedDialChild(
+          child: const Icon(Icons.sports_esports, color: Colors.white),
+          backgroundColor: AppColors.secondary,
+          label: '遊戲空間',
+          labelStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+          labelBackgroundColor: Colors.white,
+          onTap: () => _onGameSpaceTap(),
+        ),
+      ],
+    );
+  }
+
+  // AI最佳搭乘規劃功能
+  void _onAIFeatureTap() async {
+    // 如果有緩存的結果，直接顯示上次結果
+    if (_cachedAIResult != null &&
+        _cachedFromLocation != null &&
+        _cachedToLocation != null) {
+      AIResultBubble.show(
+        context,
+        result: _cachedAIResult!,
+        onRetry: () {
+          // 清除緩存並重新顯示輸入對話框
+          _clearAICacheAndShowDialog();
+        },
+      );
+      return;
+    }
+
+    // 沒有緩存，顯示輸入對話框
+    _showAIPlanDialog();
+  }
+
+  // 顯示 AI 規劃輸入對話框
+  void _showAIPlanDialog() {
+    AIPlanDialog.show(
+      context,
+      onSubmit: (fromLocation, toLocation) {
+        _startAIPlanning(fromLocation, toLocation);
+      },
+    );
+  }
+
+  // 清除 AI 緩存並顯示輸入對話框
+  void _clearAICacheAndShowDialog() {
+    // 先關閉當前的結果畫面
+    Navigator.pop(context);
+
+    setState(() {
+      _cachedAIResult = null;
+      _cachedFromLocation = null;
+      _cachedToLocation = null;
+    });
+
+    // 顯示輸入對話框
+    _showAIPlanDialog();
+  }
+
+  // 開始 AI 規劃
+  Future<void> _startAIPlanning(String fromLocation, String toLocation) async {
+    if (_isPlanning) return;
+
+    setState(() {
+      _isPlanning = true;
+    });
+
+    // 保存查詢地點
+    _cachedFromLocation = fromLocation;
+    _cachedToLocation = toLocation;
+
+    // 顯示載入中的氣泡
+    AIResultBubble.showLoading(context, message: '正在分析附近交通站點...');
+
+    try {
+      // 使用 AI 規劃服務執行完整流程
+      // 1. 取得附近站點 2. 生成 Prompt 3. 發送到 Gemini
+      final response = await _aiPlanningService.performAIPlanning(
+        fromLocation: fromLocation,
+        toLocation: toLocation,
+      );
+
+      // 緩存結果
+      _cachedAIResult = response;
+
+      // 關閉載入對話框
+      if (mounted) {
+        Navigator.pop(context);
+
+        // 顯示結果
+        AIResultBubble.show(
+          context,
+          result: response,
+          onRetry: () {
+            // 清除緩存並重新顯示輸入對話框
+            _clearAICacheAndShowDialog();
+          },
+        );
+      }
+    } catch (e) {
+      // 清除緩存（因為規劃失敗）
+      _cachedAIResult = null;
+
+      // 關閉載入對話框
+      if (mounted) {
+        Navigator.pop(context);
+
+        // 顯示錯誤結果
+        AIResultBubble.show(
+          context,
+          result: '規劃失敗：$e\n\n請檢查網路連線或稍後再試。',
+          onRetry: () {
+            // 清除緩存並重新顯示輸入對話框
+            _clearAICacheAndShowDialog();
+          },
+        );
+      }
+    } finally {
+      setState(() {
+        _isPlanning = false;
+      });
+    }
+  }
+
+  // 遊戲空間功能
+  void _onGameSpaceTap() {
+    // 顯示即將推出的提示
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('遊戲空間即將推出！'),
+        duration: Duration(seconds: 2),
+        backgroundColor: AppColors.secondary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(AppRadius.medium)),
+        ),
       ),
     );
   }

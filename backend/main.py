@@ -1447,6 +1447,60 @@ async def search_bus_routes(
         raise HTTPException(status_code=500, detail=f"搜尋失敗：{str(e)}")
 
 
+@app.get("/api/bus/stops/nearby")
+async def get_nearby_bus_stops(
+    lat: float = Query(..., description="緯度"),
+    lon: float = Query(..., description="經度"),
+    radius: float = Query(1000.0, ge=100, le=5000, description="搜尋半徑（公尺）"),
+    limit: int = Query(10, ge=1, le=50, description="最多回傳幾個站點")
+):
+    """
+    取得指定座標附近的公車站點
+
+    根據經緯度找出附近的所有公車站點，並包含每個站點所屬的路線資訊。
+    可用於規劃行程時找出可用的公車路線。
+
+    Args:
+        lat: 緯度
+        lon: 經度
+        radius: 搜尋半徑（公尺），預設 1000
+        limit: 最多回傳幾個站點，預設 10
+
+    Returns:
+        站點列表，每個站點包含：
+        - stop_id: 站牌代碼
+        - name: 站牌名稱
+        - route_id: 所屬路線代碼
+        - route_name: 路線名稱
+        - direction: 方向 (0=去程, 1=返程)
+        - sequence: 站序
+        - latitude: 緯度
+        - longitude: 經度
+        - distance: 距離（公尺）
+        - departure: 起點站
+        - destination: 終點站
+    """
+    global _ntpc_bus_service
+
+    if not _ntpc_bus_service:
+        raise HTTPException(status_code=503, detail="CSV 資料服務尚未初始化")
+
+    try:
+        # 取得附近站點
+        nearby_stops = _ntpc_bus_service.get_nearby_stops(lat, lon, radius, limit)
+
+        return {
+            "location": {"lat": lat, "lon": lon},
+            "radius": radius,
+            "total": len(nearby_stops),
+            "stops": nearby_stops
+        }
+
+    except Exception as e:
+        logger.error(f"取得附近站點失敗：{e}")
+        raise HTTPException(status_code=500, detail=f"取得附近站點失敗：{str(e)}")
+
+
 @app.get("/api/bus/timetable/{route_id}", response_model=List[BusTimeEntry])
 async def get_bus_timetable(route_id: str, city: str = Query(None, description="縣市代碼 (Taipei, NewTaipei，或 None 自動搜尋)")):
     """

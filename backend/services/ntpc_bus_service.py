@@ -223,3 +223,83 @@ class NTPCBusService:
     async def close(self):
         """清理資源"""
         await self.downloader.close()
+
+    def get_nearby_stops(
+        self,
+        lat: float,
+        lon: float,
+        radius: float = 1000.0,
+        limit: int = 10
+    ) -> List[Dict]:
+        """
+        取得指定座標附近的公車站點
+
+        使用 Haversine 公式計算距離，返回附近站點及其所屬路線資訊
+
+        Args:
+            lat: 緯度
+            lon: 經度
+            radius: 搜尋半徑（公尺），預設 1000
+            limit: 最多回傳幾個站點，預設 10
+
+        Returns:
+            站點列表，每個站點包含：
+            - stop_id: 站牌代碼
+            - name: 站牌名稱
+            - route_id: 所屬路線代碼
+            - route_name: 路線名稱
+            - direction: 方向 (0=去程, 1=返程)
+            - sequence: 站序
+            - latitude: 緯度
+            - longitude: 經度
+            - distance: 距離（公尺）
+            - departure: 起點站
+            - destination: 終點站
+        """
+        from math import radians, cos, sin, asin, sqrt
+
+        def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+            """計算兩點間距離（公尺）"""
+            lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+            dlat = lat2 - lat1
+            dlon = lon2 - lon1
+            a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+            c = 2 * asin(sqrt(a))
+            r = 6371000  # 地球半徑（公尺）
+            return c * r
+
+        nearby_stops = []
+
+        # 遍歷所有路線的所有站點
+        for key, stops in self._stops.items():
+            for stop in stops:
+                # 跳過沒有座標的站點
+                if stop.latitude is None or stop.longitude is None:
+                    continue
+
+                # 計算距離
+                distance = haversine(lat, lon, stop.latitude, stop.longitude)
+
+                if distance <= radius:
+                    # 取得路線資訊
+                    route = self._routes.get(stop.route_id)
+                    if route:
+                        nearby_stops.append({
+                            "stop_id": stop.stop_id,
+                            "name": stop.name_zh,
+                            "route_id": stop.route_id,
+                            "route_name": route.name_zh,
+                            "direction": stop.direction,
+                            "sequence": stop.sequence,
+                            "latitude": stop.latitude,
+                            "longitude": stop.longitude,
+                            "distance": round(distance, 1),
+                            "departure": route.departure_zh,
+                            "destination": route.destination_zh
+                        })
+
+        # 按距離排序
+        nearby_stops.sort(key=lambda x: x["distance"])
+
+        # 限制數量
+        return nearby_stops[:limit]
