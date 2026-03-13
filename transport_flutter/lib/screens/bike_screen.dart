@@ -11,6 +11,7 @@ import '../ui_theme.dart';
 import '../widgets/bike_station_card.dart';
 import '../widgets/loading_animations.dart';
 import '../widgets/styled_inputs.dart';
+import '../widgets/analytics_widgets.dart';
 import 'bike_map_screen.dart';
 
 class BikeScreen extends StatefulWidget {
@@ -236,6 +237,15 @@ class _BikeScreenState extends State<BikeScreen> {
         }
       }
     });
+
+    // 追蹤搜尋事件
+    if (query.isNotEmpty) {
+      FeatureAnalytics.trackSearch(
+        searchType: 'bike_station',
+        query: query,
+        resultCount: _filteredStations.length,
+      );
+    }
   }
 
   /// 根據熱門程度排序站點（已棄用，改為按距離排序）
@@ -250,6 +260,16 @@ class _BikeScreenState extends State<BikeScreen> {
   Future<void> _selectStation(BikeStation station) async {
     final l10n = AppLocalizations.of(context)!;
     if (!mounted) return;
+
+    // 追蹤站點選擇
+    FeatureAnalytics.trackFeatureUse(
+      featureName: 'view_bike_station',
+      featureType: 'bike',
+      parameters: {
+        'station_name': station.name,
+        'station_id': station.stationId,
+      },
+    );
 
     // 關閉任何已開啟的 bottom sheet（切換站點時）
     _closeBottomSheet();
@@ -287,7 +307,15 @@ class _BikeScreenState extends State<BikeScreen> {
   Future<void> _openNavigation(BikeStation station) async {
     if (!mounted) return;
 
-    if (!mounted) return;
+    // 追蹤地圖導航
+    FeatureAnalytics.trackFeatureUse(
+      featureName: 'bike_map_view',
+      featureType: 'bike',
+      parameters: {
+        'station_name': station.name,
+        'station_id': station.stationId,
+      },
+    );
 
     // 顯示導航選項
     Navigator.of(context).push(MaterialPageRoute(
@@ -387,6 +415,11 @@ class _BikeScreenState extends State<BikeScreen> {
           color: Colors.red,
           iconSize: 32,
           onPressed: () {
+            // 追蹤地圖查看
+            FeatureAnalytics.trackFeatureUse(
+              featureName: 'bike_map_view',
+              featureType: 'bike',
+            );
             Navigator.of(context).push(MaterialPageRoute(
               builder: (context) => const BikeMapScreen(),
             ));

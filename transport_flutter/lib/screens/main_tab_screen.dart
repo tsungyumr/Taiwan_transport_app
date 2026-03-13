@@ -8,6 +8,7 @@ import '../widgets/animated_card.dart';
 import '../widgets/loading_animations.dart';
 import '../widgets/ai_plan_dialog.dart';
 import '../widgets/ai_result_bubble.dart';
+import '../widgets/analytics_widgets.dart';
 import '../services/gemini_webview_service.dart';
 import '../services/ai_planning_service.dart';
 import '../ui_theme.dart';
@@ -190,6 +191,17 @@ class _MainTabScreenState extends State<MainTabScreen>
           tabIconSelectedColor: Colors.white,
           tabBarColor: Colors.white,
           onTabItemSelected: (int value) {
+            // 追蹤 Tab 切換
+            final tabNames = [l10n.tabBus, l10n.tabRailway, l10n.tabThsr, l10n.tabBike];
+            FeatureAnalytics.trackFeatureUse(
+              featureName: 'tab_switch',
+              featureType: 'navigation',
+              parameters: {
+                'tab_name': tabNames[value],
+                'tab_index': value,
+              },
+            );
+
             setState(() {
               _motionTabBarController!.index = value;
             });
@@ -312,6 +324,12 @@ class _MainTabScreenState extends State<MainTabScreen>
 
   // 清除 AI 緩存並顯示輸入對話框（保留地點作為預設值，讓用戶可以修改後重新規劃）
   void _clearAICacheAndShowDialog() {
+    // 追蹤 AI 重新規劃
+    FeatureAnalytics.trackFeatureUse(
+      featureName: 'ai_plan_retry',
+      featureType: 'ai',
+    );
+
     // 先關閉當前的結果畫面
     Navigator.pop(context);
 
@@ -340,6 +358,15 @@ class _MainTabScreenState extends State<MainTabScreen>
 
     if (_isPlanning) return;
 
+    // 追蹤 AI 規劃開始
+    FeatureAnalytics.trackFeatureUse(
+      featureName: 'ai_plan_start',
+      featureType: 'ai',
+      parameters: {
+        'language': languageCode,
+      },
+    );
+
     setState(() {
       _isPlanning = true;
     });
@@ -364,6 +391,15 @@ class _MainTabScreenState extends State<MainTabScreen>
       // 緩存結果
       _cachedAIResult = response;
 
+      // 追蹤 AI 規劃成功
+      FeatureAnalytics.trackFeatureUse(
+        featureName: 'ai_plan_complete',
+        featureType: 'ai',
+        parameters: {
+          'language': languageCode,
+        },
+      );
+
       // 關閉載入對話框
       if (mounted) {
         Navigator.pop(context);
@@ -381,6 +417,16 @@ class _MainTabScreenState extends State<MainTabScreen>
     } catch (e) {
       // 清除緩存（因為規劃失敗）
       _cachedAIResult = null;
+
+      // 追蹤 AI 規劃失敗
+      FeatureAnalytics.trackFeatureUse(
+        featureName: 'ai_plan_failed',
+        featureType: 'ai',
+        parameters: {
+          'error_type': e.toString(),
+          'language': languageCode,
+        },
+      );
 
       // 關閉載入對話框
       if (mounted) {
@@ -406,6 +452,12 @@ class _MainTabScreenState extends State<MainTabScreen>
   // 遊戲空間功能
   void _onGameSpaceTap() {
     final l10n = AppLocalizations.of(context)!;
+
+    // 追蹤遊戲空間點擊
+    FeatureAnalytics.trackFeatureUse(
+      featureName: 'game_space_click',
+      featureType: 'game',
+    );
 
     // 顯示即將推出的提示
     ScaffoldMessenger.of(context).showSnackBar(

@@ -26,13 +26,52 @@ class FirebaseService {
   /// 初始化 Firebase
   /// 在 main() 函數中呼叫，需要在 runApp() 之前
   Future<void> initialize() async {
-    if (_initialized) return;
+    if (_initialized) {
+      log('Firebase 已經初始化，跳過', name: 'FirebaseService');
+      return;
+    }
 
     try {
+      // 檢查是否已經有預設的 Firebase App（例如 Hot Reload 時）
+      // 使用 try-catch 包覆，因為 Firebase.apps 可能在未初始化時拋出異常
+      bool alreadyInitialized = false;
+      try {
+        // 嘗試取得預設 app，如果成功表示已經初始化
+        final app = Firebase.app();
+        if (app.name == '[DEFAULT]') {
+          log('Firebase 預設 App 已存在，使用現有實例', name: 'FirebaseService');
+          alreadyInitialized = true;
+        }
+      } catch (_) {
+        // 取得失敗表示還沒初始化，這是正常的
+        log('Firebase 尚未初始化，繼續初始化流程', name: 'FirebaseService');
+      }
+
+      if (alreadyInitialized) {
+        _analytics = FirebaseAnalytics.instance;
+        _crashlytics = FirebaseCrashlytics.instance;
+        _initialized = true;
+        return;
+      }
+
       // 初始化 Firebase Core，使用平台特定的設定
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      } catch (initError) {
+        // 如果是重複初始化錯誤，直接使用現有實例
+        if (initError.toString().contains('duplicate-app') ||
+            initError.toString().contains('already exists')) {
+          log('Firebase 重複初始化，使用現有實例', name: 'FirebaseService');
+          _analytics = FirebaseAnalytics.instance;
+          _crashlytics = FirebaseCrashlytics.instance;
+          _initialized = true;
+          return;
+        }
+        // 其他錯誤則拋出
+        rethrow;
+      }
 
       _analytics = FirebaseAnalytics.instance;
       _crashlytics = FirebaseCrashlytics.instance;
@@ -52,8 +91,8 @@ class FirebaseService {
   Future<void> _setupCrashlytics() async {
     if (_crashlytics == null) return;
 
-    // 在正式環境中啟用自動錯誤收集
-    await _crashlytics!.setCrashlyticsCollectionEnabled(!kDebugMode);
+    // 啟用自動錯誤收集（開發模式和正式環境都啟用）
+    await _crashlytics!.setCrashlyticsCollectionEnabled(true);
 
     // 設定 Flutter 框架錯誤處理器
     FlutterError.onError = (errorDetails) {
@@ -234,6 +273,49 @@ class FirebaseService {
   void testAsyncCrash() {
     _crashlytics?.log('Testing async crash');
     throw Exception('這是一個測試錯誤');
+  }
+
+  /// 驗證 Crashlytics 狀態
+  /// 回傳包含狀態資訊的 Map，可用於開發除錯
+  Future<Map<String, dynamic>> verifyCrashlyticsStatus() async {
+    final status = <String, dynamic>{
+      'firebase_initialized': _initialized,
+      'crashlytics_instance_exists': _crashlytics != null,
+    };
+
+    if (_crashlytics == null) {
+      status['error'] = 'Crashlytics 實例為 null';
+      return status;
+    }
+
+    try {
+      // 測試記錄一個非致命錯誤
+      await _crashlytics!.log('Crashlytics 驗證測試 - 正常運作');
+      status['log_test'] = 'success';
+
+      // 檢查是否啟用收集
+      final isEnabled = await _crashlytics!.isCrashlyticsCollectionEnabled;
+      status['collection_enabled'] = isEnabled;
+
+      // 設定測試用戶識別碼
+      await _crashlytics!.setUserIdentifier('test_user_${DateTime.now().millisecondsSinceEpoch}');
+      status['user_identifier_set'] = true;
+
+      // 記錄一個測試非致命錯誤
+      await _crashlytics!.recordError(
+        Exception('Crashlytics 驗證測試錯誤'),
+        StackTrace.current,
+        reason: '驗證 Crashlytics 是否正常運作',
+        fatal: false,
+      );
+      status['error_recorded'] = true;
+      status['overall_status'] = 'ok';
+    } catch (e) {
+      status['error'] = e.toString();
+      status['overall_status'] = 'failed';
+    }
+
+    return status;
   }
 }
 

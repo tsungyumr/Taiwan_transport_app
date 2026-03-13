@@ -374,14 +374,6 @@
   "@commonLanguage": {
     "description": "語言設定標題"
   },
-  "languageZh": "繁體中文",
-  "@languageZh": {
-    "description": "繁體中文語系名稱"
-  },
-  "languageEn": "English",
-  "@languageEn": {
-    "description": "英文語系名稱"
-  },
   "selectLanguage": "選擇語言",
   "@selectLanguage": {
     "description": "選擇語言標題"

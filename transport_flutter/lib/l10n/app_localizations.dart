@@ -608,18 +608,6 @@ abstract class AppLocalizations {
   /// **'語言'**
   String get commonLanguage;
 
-  /// 繁體中文語系名稱
-  ///
-  /// In zh, this message translates to:
-  /// **'繁體中文'**
-  String get languageZh;
-
-  /// 英文語系名稱
-  ///
-  /// In zh, this message translates to:
-  /// **'English'**
-  String get languageEn;
-
   /// 選擇語言標題
   ///
   /// In zh, this message translates to:

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/language_provider.dart';
+import '../widgets/analytics_widgets.dart';
 import '../ui_theme.dart';
 
 /// 設定頁面
@@ -110,7 +111,7 @@ class SettingsScreen extends ConsumerWidget {
               context,
               ref,
               l10n,
-              title: l10n.languageZh,
+              title: '繁體中文',
               subtitle: 'Traditional Chinese',
               locale: AppLocale.zh,
               isSelected: languageState.isZh,
@@ -123,7 +124,7 @@ class SettingsScreen extends ConsumerWidget {
               context,
               ref,
               l10n,
-              title: l10n.languageEn,
+              title: 'English',
               subtitle: 'English (US)',
               locale: AppLocale.en,
               isSelected: languageState.isEn,
@@ -148,6 +149,19 @@ class SettingsScreen extends ConsumerWidget {
   }) {
     return InkWell(
       onTap: () async {
+        // 追蹤語言切換
+        final oldLocale = ref.read(languageProvider);
+        final toLanguageCode = locale == AppLocale.zh ? 'zh' : 'en';
+        FeatureAnalytics.trackFeatureUse(
+          featureName: 'change_language',
+          featureType: 'settings',
+          parameters: {
+            'from': oldLocale.locale.languageCode,
+            'to': toLanguageCode,
+          },
+        );
+        UserAnalytics.setLanguage(toLanguageCode);
+
         await ref.read(languageProvider.notifier).setLocale(locale);
       },
       borderRadius: BorderRadius.circular(AppRadius.medium),

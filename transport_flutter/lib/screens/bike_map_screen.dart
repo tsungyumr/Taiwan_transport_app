@@ -9,10 +9,11 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/bike_station.dart';
 import '../services/bike_api_service.dart';
-import '../ui_theme.dart';
-import '../l10n/app_localizations.dart';
 import '../widgets/station_marker.dart';
 import '../widgets/station_detail_card.dart';
+import '../widgets/analytics_widgets.dart';
+import '../ui_theme.dart';
+import '../l10n/app_localizations.dart';
 
 /// YouBike 地圖頁面
 class BikeMapScreen extends StatefulWidget {
@@ -201,6 +202,13 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
       } else {
         LatLng center = getCenterCoordinate(coords);
         _mapController.move(LatLng(center.latitude, center.longitude), 16);
+
+        // 追蹤地圖搜尋
+        FeatureAnalytics.trackSearch(
+          searchType: 'bike_map_station',
+          query: keyword,
+          resultCount: coords.length,
+        );
       }
     } finally {
       setState(() => _isSearching = false);
@@ -213,6 +221,16 @@ class _BikeMapScreenState extends State<BikeMapScreen> {
     _mapController.move(
       LatLng(station.lat, station.lng),
       _mapController.camera.zoom,
+    );
+
+    // 追蹤地圖站點選擇
+    FeatureAnalytics.trackFeatureUse(
+      featureName: 'bike_map_station_select',
+      featureType: 'bike',
+      parameters: {
+        'station_name': station.name,
+        'station_id': station.stationId,
+      },
     );
   }
 

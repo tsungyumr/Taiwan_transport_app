@@ -283,12 +283,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonLanguage => 'Language';
 
   @override
-  String get languageZh => 'Traditional Chinese';
-
-  @override
-  String get languageEn => 'English';
-
-  @override
   String get selectLanguage => 'Select Language';
 
   @override

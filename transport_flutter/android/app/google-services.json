@@ -1,14 +1,13 @@
 {
   "project_info": {
-    "project_number": "YOUR_PROJECT_NUMBER",
-    "firebase_url": "YOUR_FIREBASE_URL",
-    "project_id": "YOUR_PROJECT_ID",
-    "storage_bucket": "YOUR_STORAGE_BUCKET"
+    "project_number": "654977489497",
+    "project_id": "abby-transport-app",
+    "storage_bucket": "abby-transport-app.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "YOUR_ANDROID_APP_ID",
+        "mobilesdk_app_id": "1:654977489497:android:bf1f42d579037107f9ef48",
         "android_client_info": {
           "package_name": "com.zaizaicat.transportapp"
         }
@@ -16,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "YOUR_ANDROID_API_KEY"
+          "current_key": "AIzaSyC_MySBJFYqsrL4X-mrGl4N0hpA9GjjgsA"
         }
       ],
       "services": {

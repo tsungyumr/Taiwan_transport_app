@@ -274,12 +274,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonLanguage => '語言';
 
   @override
-  String get languageZh => '繁體中文';
-
-  @override
-  String get languageEn => 'English';
-
-  @override
   String get selectLanguage => '選擇語言';
 
   @override

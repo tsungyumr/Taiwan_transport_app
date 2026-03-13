@@ -7,6 +7,7 @@ import '../widgets/animated_card.dart';
 import '../widgets/expandable_search_panel.dart';
 import '../widgets/loading_animations.dart';
 import '../widgets/styled_inputs.dart';
+import '../widgets/analytics_widgets.dart';
 import '../ui_theme.dart';
 
 class THSRScreen extends StatefulWidget {
@@ -169,6 +170,13 @@ class _THSRScreenState extends State<THSRScreen> {
       // 搜尋後自動縮小搜尋條件區域
       _isSearchPanelExpanded = false;
     });
+
+    // 追蹤搜尋事件
+    FeatureAnalytics.trackSearch(
+      searchType: 'thsr_timetable',
+      query: '$_selectedFromStationName-$_selectedToStationName',
+      resultCount: timetable.length,
+    );
   }
 
   void _showErrorSnackBar(String message) {
@@ -399,6 +407,16 @@ class _THSRScreenState extends State<THSRScreen> {
                 _selectedFromStationCode = value;
                 _selectedFromStationName = selectedStation.stationName;
               });
+
+              // 追蹤出發站選擇
+              FeatureAnalytics.trackFeatureUse(
+                featureName: 'select_thsr_station',
+                featureType: 'thsr',
+                parameters: {
+                  'station_type': 'from',
+                  'station_name': selectedStation.stationName,
+                },
+              );
             }
           },
         ),
@@ -442,6 +460,16 @@ class _THSRScreenState extends State<THSRScreen> {
                 _selectedToStationCode = value;
                 _selectedToStationName = selectedStation.stationName;
               });
+
+              // 追蹤抵達站選擇
+              FeatureAnalytics.trackFeatureUse(
+                featureName: 'select_thsr_station',
+                featureType: 'thsr',
+                parameters: {
+                  'station_type': 'to',
+                  'station_name': selectedStation.stationName,
+                },
+              );
             }
           },
         ),

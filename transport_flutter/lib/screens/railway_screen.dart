@@ -7,6 +7,7 @@ import '../widgets/animated_card.dart';
 import '../widgets/expandable_search_panel.dart';
 import '../widgets/loading_animations.dart';
 import '../widgets/styled_inputs.dart';
+import '../widgets/analytics_widgets.dart';
 import '../ui_theme.dart';
 
 // 台鐵車種定義
@@ -243,6 +244,13 @@ class _RailwayScreenState extends State<RailwayScreen> {
       // 搜尋後自動縮小搜尋條件區域
       _isSearchPanelExpanded = false;
     });
+
+    // 追蹤搜尋事件
+    FeatureAnalytics.trackSearch(
+      searchType: 'tra_timetable',
+      query: '$_selectedFromStationName-$_selectedToStationName',
+      resultCount: timetable.length,
+    );
   }
 
   void _showErrorSnackBar(String message) {
@@ -540,6 +548,16 @@ class _RailwayScreenState extends State<RailwayScreen> {
                 _selectedFromStationCode = value;
                 _selectedFromStationName = selectedStation.stationName;
               });
+
+              // 追蹤出發站選擇
+              FeatureAnalytics.trackFeatureUse(
+                featureName: 'select_tra_station',
+                featureType: 'railway',
+                parameters: {
+                  'station_type': 'from',
+                  'station_name': selectedStation.stationName,
+                },
+              );
             }
           },
         ),
@@ -616,6 +634,16 @@ class _RailwayScreenState extends State<RailwayScreen> {
                 _selectedToStationCode = value;
                 _selectedToStationName = selectedStation.stationName;
               });
+
+              // 追蹤抵達站選擇
+              FeatureAnalytics.trackFeatureUse(
+                featureName: 'select_tra_station',
+                featureType: 'railway',
+                parameters: {
+                  'station_type': 'to',
+                  'station_name': selectedStation.stationName,
+                },
+              );
             }
           },
         ),
@@ -738,6 +766,12 @@ class _RailwayScreenState extends State<RailwayScreen> {
                 _selectedTrainType = value;
                 _applyTrainTypeFilter();
               });
+
+              // 追蹤車種篩選
+              FeatureAnalytics.trackFilter(
+                filterType: 'train_type',
+                filterValue: value.name,
+              );
             }
           },
         ),

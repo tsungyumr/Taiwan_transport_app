@@ -7,6 +7,7 @@ import '../services/search_history_service.dart';
 import '../widgets/animated_card.dart';
 import '../widgets/loading_animations.dart';
 import '../widgets/styled_inputs.dart';
+import '../widgets/analytics_widgets.dart';
 import '../ui_theme.dart';
 import 'bus_route_page.dart';
 
@@ -17,11 +18,14 @@ class BusScreen extends StatefulWidget {
   State<BusScreen> createState() => _BusScreenState();
 }
 
-class _BusScreenState extends State<BusScreen> {
+class _BusScreenState extends State<BusScreen> with AnalyticsScreenTracking {
   final ApiService _apiService = ApiService();
   final BusSearchHistoryService _historyService = BusSearchHistoryService();
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  @override
+  String get screenName => 'BusScreen';
 
   List<BusRoute> _allRoutes = []; // 所有路線
   List<BusRoute> _filteredRoutes = []; // 篩選後的路線
@@ -88,6 +92,15 @@ class _BusScreenState extends State<BusScreen> {
       // 根據觀看次數排序（熱門的在前）
       _sortRoutesByPopularity();
     });
+
+    // 追蹤搜尋事件
+    if (query.isNotEmpty) {
+      FeatureAnalytics.trackSearch(
+        searchType: 'bus_route',
+        query: query,
+        resultCount: _filteredRoutes.length,
+      );
+    }
   }
 
   /// 根據熱門程度排序路線
@@ -106,6 +119,17 @@ class _BusScreenState extends State<BusScreen> {
 
   /// 選擇路線（點擊觀看）
   Future<void> _selectRoute(BusRoute route) async {
+    // 追蹤路線選擇
+    FeatureAnalytics.trackFeatureUse(
+      featureName: 'view_bus_route',
+      featureType: 'bus',
+      parameters: {
+        'route_name': route.routeName,
+        'route_id': route.routeId,
+        'operator': route.operator,
+      },
+    );
+
     // 記錄觀看歷史
     await _historyService.recordSearch(route);
 
@@ -159,6 +183,15 @@ class _BusScreenState extends State<BusScreen> {
     );
 
     if (confirmed == true) {
+      // 追蹤清除歷史事件
+      FeatureAnalytics.trackFeatureUse(
+        featureName: 'clear_bus_history',
+        featureType: 'bus',
+        parameters: {
+          'history_count': _viewHistory.length,
+        },
+      );
+
       await _historyService.clearHistory();
       await _loadViewHistory();
       // 重新排序（恢復預設排序）
