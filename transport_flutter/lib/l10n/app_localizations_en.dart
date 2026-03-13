@@ -196,10 +196,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get thsrSeatFree => 'Non-Reserved';
 
   @override
-  String get bikeTitle => 'UBike';
+  String get bikeTitle => 'YouBike';
 
   @override
-  String get bikeSubtitle => 'Search Taipei and New Taipei City UBike stations';
+  String get bikeSubtitle =>
+      'Search Taipei and New Taipei City YouBike stations';
 
   @override
   String get bikeSearchHint => 'Search stations or locations...';
@@ -318,7 +319,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bikeNoStations => 'No station data available';
 
   @override
-  String get bikeNoStationsData => 'No UBike station data available currently';
+  String get bikeNoStationsData =>
+      'No YouBike station data available currently';
 
   @override
   String bikeNoMatchingStations(String query) {

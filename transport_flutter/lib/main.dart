@@ -5,8 +5,15 @@ import 'l10n/app_localizations.dart';
 import 'providers/language_provider.dart';
 import 'screens/main_tab_screen.dart';
 import 'ui_theme.dart';
+import 'services/firebase_service.dart';
 
-void main() {
+void main() async {
+  // 確保 Flutter 綁定已初始化
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 初始化 Firebase
+  await firebaseService.initialize();
+
   runApp(
     const ProviderScope(
       child: TaiwanTransportApp(),

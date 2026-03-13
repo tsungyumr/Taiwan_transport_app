@@ -449,13 +449,13 @@ abstract class AppLocalizations {
   /// 腳踏車頁面標題
   ///
   /// In zh, this message translates to:
-  /// **'UBike 腳踏車'**
+  /// **'YouBike 腳踏車'**
   String get bikeTitle;
 
   /// 腳踏車功能副標題
   ///
   /// In zh, this message translates to:
-  /// **'查詢台北市、新北市 UBike 腳踏車'**
+  /// **'查詢台北市、新北市 YouBike 腳踏車'**
   String get bikeSubtitle;
 
   /// 腳踏車搜尋提示
@@ -674,16 +674,16 @@ abstract class AppLocalizations {
   /// **'搜尋地點...'**
   String get bikeMapSearchHint;
 
-  /// UBike 無站點資料提示
+  /// YouBike 無站點資料提示
   ///
   /// In zh, this message translates to:
   /// **'暫無站點資料'**
   String get bikeNoStations;
 
-  /// UBike 無資料提示
+  /// YouBike 無資料提示
   ///
   /// In zh, this message translates to:
-  /// **'目前沒有可用的 UBike 站點資料'**
+  /// **'目前沒有可用的 YouBike 站點資料'**
   String get bikeNoStationsData;
 
   /// 搜尋無結果提示

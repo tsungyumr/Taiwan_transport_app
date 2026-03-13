@@ -1,11 +1,11 @@
 // station_marker.dart
-// UBike 站點地圖標記元件
+// YouBike 站點地圖標記元件
 
 import 'package:flutter/material.dart';
 import '../models/bike_station.dart';
 import '../ui_theme.dart';
 
-/// UBike 站點地圖標記
+/// YouBike 站點地圖標記
 class StationMarker extends StatelessWidget {
   final BikeStation station;
   final VoidCallback onTap;

@@ -11,8 +11,13 @@ import '../ui_theme.dart';
 
 class THSRScreen extends StatefulWidget {
   final bool showAppBar;
+  final bool isActive;
 
-  const THSRScreen({super.key, this.showAppBar = true});
+  const THSRScreen({
+    super.key,
+    this.showAppBar = true,
+    this.isActive = true,
+  });
 
   @override
   State<THSRScreen> createState() => _THSRScreenState();
@@ -48,7 +53,9 @@ class _THSRScreenState extends State<THSRScreen> {
   @override
   void initState() {
     super.initState();
-    // initState 中無法使用 Localizations，延遲到 didChangeDependencies 加載
+    // 初始化時間
+    _startTime = TimeOfDay.now();
+    _endTime = const TimeOfDay(hour: 23, minute: 59);
   }
 
   @override
@@ -60,16 +67,25 @@ class _THSRScreenState extends State<THSRScreen> {
     if (!_isInitialized) {
       _isInitialized = true;
       _currentLang = lang;
-      _loadStations();
-      // 預設當天時間
-      _startTime = TimeOfDay.now();
-      _endTime = const TimeOfDay(hour: 23, minute: 59);
+      // 只有在活躍狀態時才載入資料
+      if (widget.isActive) {
+        _loadStations();
+      }
       return;
     }
 
     // 語言變化時重新加載站點
     if (_currentLang != lang) {
       _currentLang = lang;
+      _loadStations();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant THSRScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 當從非活躍變成活躍時，且資料還沒載入，則載入資料
+    if (!oldWidget.isActive && widget.isActive && _stations.isEmpty && !_isLoading) {
       _loadStations();
     }
   }

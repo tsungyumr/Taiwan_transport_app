@@ -1,9 +1,9 @@
 // bike_station.dart
-// UBike 站點資料模型
+// YouBike 站點資料模型
 
 import 'package:flutter/material.dart';
 
-/// UBike 站點狀態
+/// YouBike 站點狀態
 enum BikeStatus {
   available,  // 充足 (> 10)
   limited,    // 中等 (5-10)
@@ -11,7 +11,7 @@ enum BikeStatus {
   empty,      // 無車 (0)
 }
 
-/// UBike 站點資料模型
+/// YouBike 站點資料模型
 class BikeStation {
   final String stationId;      // 站點ID
   final String name;           // 站點名稱

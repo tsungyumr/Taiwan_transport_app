@@ -26,6 +26,9 @@ class GeminiWebViewService {
   bool _isProcessing = false;
   bool _isLoggedIn = false;
 
+  /// 取得初始化狀態
+  bool get isInitialized => _isInitialized;
+
   /// 初始化 StreamController
   void _initStreamController() {
     // 如果已經關閉，重新創建
@@ -73,6 +76,12 @@ class GeminiWebViewService {
         javaScriptCanOpenWindowsAutomatically: true,
         // 允許第三方 Cookie
         thirdPartyCookiesEnabled: true,
+        // 保存表單數據
+        saveFormData: true,
+        // 啟用 Cookie
+        useOnLoadResource: true,
+        // 硬體加速
+        hardwareAcceleration: true,
       ),
       onWebViewCreated: (controller) {
         _webViewController = controller;
@@ -115,6 +124,7 @@ class GeminiWebViewService {
   Future<void> _checkLoginStatus() async {
     if (_webViewController == null) return;
 
+    // 更全面的檢查：包括登入指示器和輸入框存在性
     final jsCode = '''
       (function() {
         const loginIndicators = [
@@ -124,23 +134,66 @@ class GeminiWebViewService {
           '認識 Gemini',
           '認識 Gemini：你的專屬 AI 助理',
           '試用應用程式',
-          '認識 Gemini：'
+          '認識 Gemini：',
+          'Sign in',
+          'Log in',
+          '登入'
         ];
 
         const pageText = document.body ? document.body.innerText : '';
+        let foundLoginIndicator = false;
+
         for (const indicator of loginIndicators) {
           if (pageText.includes(indicator)) {
-            return 'NOT_LOGGED_IN';
+            foundLoginIndicator = true;
+            break;
           }
         }
-        return 'LOGGED_IN';
+
+        // 同時檢查是否有輸入框可用
+        const inputSelectors = [
+          'div[contenteditable="true"]',
+          'div[role="textbox"]',
+          'textarea',
+          'rich-textarea'
+        ];
+
+        let hasInputBox = false;
+        for (const selector of inputSelectors) {
+          const elements = document.querySelectorAll(selector);
+          for (const el of elements) {
+            if (el.offsetParent !== null && el.getBoundingClientRect().height > 0) {
+              hasInputBox = true;
+              break;
+            }
+          }
+          if (hasInputBox) break;
+        }
+
+        // 如果有輸入框且沒有登入指示器，視為已登入
+        if (hasInputBox && !foundLoginIndicator) {
+          return 'LOGGED_IN';
+        }
+
+        // 如果有登入指示器，視為未登入
+        if (foundLoginIndicator) {
+          return 'NOT_LOGGED_IN';
+        }
+
+        // 預設保守處理
+        return 'UNKNOWN';
       })();
     ''';
 
     try {
       final result = await _webViewController!.evaluateJavascript(source: jsCode);
-      _isLoggedIn = result != 'NOT_LOGGED_IN';
-      debugPrint('Gemini 登入狀態: ${_isLoggedIn ? '已登入' : '未登入'}');
+      if (result == 'LOGGED_IN') {
+        _isLoggedIn = true;
+      } else if (result == 'NOT_LOGGED_IN') {
+        _isLoggedIn = false;
+      }
+      // UNKNOWN 時保持現狀
+      debugPrint('Gemini 登入狀態: ${_isLoggedIn ? '已登入' : '未登入'} (檢測結果: $result)');
     } catch (e) {
       debugPrint('檢查登入狀態失敗: $e');
       _isLoggedIn = false;
@@ -180,7 +233,15 @@ class GeminiWebViewService {
 
       // 登入完成後重新檢查狀態
       if (loginResult == true) {
+        debugPrint('登入畫面返回，重新載入主 WebView 頁面...');
+        // 重新載入頁面以獲取新的 session/cookie
+        if (_webViewController != null) {
+          await _webViewController!.reload();
+          // 等待頁面重新載入
+          await Future.delayed(const Duration(seconds: 3));
+        }
         await _checkLoginStatus();
+        debugPrint('登入後狀態檢查: ${_isLoggedIn ? '已登入' : '未登入'}');
         return _isLoggedIn;
       }
     }
@@ -232,13 +293,13 @@ class GeminiWebViewService {
     // 檢查登入狀態
     await _checkLoginStatus();
 
-    // 如果未登入且有 context，顯示登入對話框
+    // 如果明確未登入且有 context，顯示登入對話框
     if (!_isLoggedIn && context != null) {
       final loggedIn = await showLoginDialog(context);
       if (!loggedIn) {
         throw Exception('需要先登入 Gemini 才能使用 AI 規劃功能');
       }
-      // 登入成功後，重新初始化 WebView 以獲取新的 session
+      // 登入成功後，重新初始化 WebView以獲取新的 session
       debugPrint('登入完成，重新初始化 WebView...');
       await reset();
       // 重新檢查登入狀態
@@ -246,9 +307,10 @@ class GeminiWebViewService {
       if (!_isLoggedIn) {
         throw Exception('登入後無法取得 session，請重試');
       }
-    } else if (!_isLoggedIn) {
+    } else if (!_isLoggedIn && context == null) {
       throw Exception('請先在瀏覽器中登入 Gemini (gemini.google.com)');
     }
+    // 如果是 UNKNOWN 狀態，繼續嘗試發送，由 JavaScript 檢查結果
 
     _isProcessing = true;
 
@@ -256,6 +318,44 @@ class GeminiWebViewService {
       // 檢查頁面是否準備好
       if (_webViewController == null) {
         throw Exception('WebView 未初始化');
+      }
+
+      // 【關鍵修改】在發送新 Prompt 前，嘗試開啟新對話（清除上下文）
+      debugPrint('嘗試開啟新對話...');
+      await _startNewConversation();
+
+      // 開啟新對話後，重新注入輔助腳本
+      await _injectHelperScript();
+
+      // 等待輸入框準備好
+      debugPrint('等待輸入框準備好...');
+      bool inputReady = false;
+      for (int i = 0; i < 10; i++) {
+        final checkJs = '''
+          (function() {
+            const selectors = [
+              'div[contenteditable="true"]',
+              'div[role="textbox"]',
+              'textarea',
+              'rich-textarea'
+            ];
+            for (const selector of selectors) {
+              const el = document.querySelector(selector);
+              if (el && el.offsetParent !== null) return 'READY';
+            }
+            return 'NOT_READY';
+          })();
+        ''';
+        final checkResult = await _webViewController!.evaluateJavascript(source: checkJs);
+        if (checkResult == 'READY') {
+          inputReady = true;
+          break;
+        }
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+
+      if (!inputReady) {
+        throw Exception('輸入框未準備好，請稍後再試');
       }
 
       debugPrint('正在發送 Prompt 到 Gemini...');
@@ -279,11 +379,14 @@ class GeminiWebViewService {
         }
       }
 
-      // 等待一下讓 JavaScript 執行完成
-      await Future.delayed(const Duration(seconds: 3));
+      // 等待一下讓 Gemini 開始生成回覆
+      debugPrint('等待 Gemini 開始生成回覆...');
+      await Future.delayed(const Duration(seconds: 5));
 
-      // 等待回覆（輪詢方式）
-      final response = await _waitForResponse(timeout: const Duration(seconds: 60));
+      // 【關鍵修改】等待新的回覆
+      final response = await _waitForNewResponse(
+        timeout: const Duration(seconds: 60),
+      );
 
       _isProcessing = false;
       return response;
@@ -379,48 +482,173 @@ class GeminiWebViewService {
     ''';
   }
 
-  /// 等待 Gemini 回覆
-  Future<String> _waitForResponse({required Duration timeout}) async {
+  /// 【新增方法】嘗試開啟新對話（清除之前的上下文）
+  Future<void> _startNewConversation() async {
+    if (_webViewController == null) return;
+
+    try {
+      const jsCode = '''
+        (function() {
+          // 尋找「新對話」按鈕或選單
+          const newChatSelectors = [
+            'button[aria-label*="新對話"]',
+            'button[aria-label*="New chat"]',
+            'button[aria-label*="新的對話"]',
+            '[data-test-id="new-chat-button"]',
+            'button svg[path*="plus"]',
+            'button svg[path*="add"]',
+          ];
+
+          for (const selector of newChatSelectors) {
+            try {
+              const elements = document.querySelectorAll(selector);
+              for (const el of elements) {
+                if (el.offsetParent !== null && el.getBoundingClientRect().height > 0) {
+                  el.click();
+                  console.log('已點擊新對話按鈕:', selector);
+                  return 'CLICKED';
+                }
+              }
+            } catch (e) {
+              // 忽略選擇器錯誤，繼續嘗試下一個
+            }
+          }
+
+          // 如果找不到新對話按鈕，嘗試導航到 gemini.google.com/app（這會重置對話）
+          const currentUrl = window.location.href;
+          if (!currentUrl.includes('gemini.google.com/app')) {
+            window.location.href = 'https://gemini.google.com/app';
+            return 'NAVIGATED';
+          }
+
+          return 'NOT_FOUND';
+        })();
+      ''';
+
+      final result = await _webViewController!.evaluateJavascript(source: jsCode);
+      debugPrint('開啟新對話結果: $result');
+
+      if (result == 'NAVIGATED') {
+        debugPrint('導航到新頁面，等待載入...');
+        // 增加等待時間讓頁面完全載入
+        await Future.delayed(const Duration(seconds: 5));
+        // 重新檢查登入狀態
+        await _checkLoginStatus();
+      } else if (result == 'CLICKED') {
+        // 給予時間讓新對話介面載入
+        await Future.delayed(const Duration(seconds: 3));
+      } else {
+        // 即使沒找到新對話按鈕，也等待一下確保頁面穩定
+        await Future.delayed(const Duration(seconds: 2));
+      }
+    } catch (e) {
+      debugPrint('開啟新對話失敗: $e');
+    }
+  }
+
+  /// 【新增方法】等待新的回覆（確保只獲取新產生的回覆）
+  Future<String> _waitForNewResponse({
+    required Duration timeout,
+  }) async {
     final stopwatch = Stopwatch()..start();
     String lastResponse = '';
     int stableCount = 0;
+    int emptyCount = 0;
 
     while (stopwatch.elapsed < timeout) {
-      await Future.delayed(const Duration(seconds: 3));
+      await Future.delayed(const Duration(seconds: 2));
 
       try {
-        const jsCode = '''
+        final jsCode = '''
           (function() {
-            const responseSelectors = [
-              '.response-container .markdown',
-              '.conversation-turn:last-child .content',
-              '[data-message-author-role="model"]'
+            // 使用多種選擇器嘗試找到回覆內容
+            const selectors = [
+              '[data-message-author-role="model"]',
+              '.model-response',
+              '.response-content',
+              '.markdown',
+              '[data-test-id="response-content"]',
+              '.conversation-turn:last-child [data-message-author-role="model"]'
             ];
 
-            for (const selector of responseSelectors) {
+            let latestMessage = null;
+            let totalMessages = 0;
+
+            // 嘗試每個選擇器
+            for (const selector of selectors) {
               const elements = document.querySelectorAll(selector);
               if (elements.length > 0) {
-                const text = elements[elements.length - 1].textContent || '';
-                if (text.trim().length > 50) {
-                  return JSON.stringify({ text: text, isGenerating: false });
-                }
+                latestMessage = elements[elements.length - 1];
+                totalMessages = elements.length;
+                break;
               }
             }
-            return JSON.stringify({ text: '', isGenerating: true });
+
+            if (!latestMessage) {
+              return JSON.stringify({ text: '', isGenerating: true, totalMessages: 0 });
+            }
+
+            // 獲取文字內容
+            let text = latestMessage.textContent || '';
+
+            // 如果沒有文字，嘗試獲取 innerText
+            if (!text || text.trim().length === 0) {
+              text = latestMessage.innerText || '';
+            }
+
+            // 檢查是否還在生成中
+            const isGenerating =
+              latestMessage.querySelector('.loading, .streaming, [data-streaming], .generating') !== null ||
+              latestMessage.innerHTML.includes('正在生成') ||
+              latestMessage.innerHTML.includes('generating') ||
+              latestMessage.classList.contains('streaming') ||
+              text.length < 50; // 如果文字太少，可能還在生成
+
+            return JSON.stringify({
+              text: text,
+              isGenerating: isGenerating,
+              totalMessages: totalMessages,
+              elementFound: true
+            });
           })();
         ''';
 
         final result = await _webViewController!.evaluateJavascript(source: jsCode);
         final data = json.decode(result.toString());
         final response = data['text']?.toString().trim() ?? '';
+        final isGenerating = data['isGenerating'] == true;
+        final elementFound = data['elementFound'] == true;
 
-        if (response.isNotEmpty) {
+        debugPrint('輪詢回覆 - 找到元素: $elementFound, 生成中: $isGenerating, 長度: ${response.length}');
+
+        // 如果還沒找到元素，繼續等待
+        if (!elementFound) {
+          emptyCount++;
+          if (emptyCount > 10) {
+            debugPrint('多次未找到回覆元素，可能頁面結構有變化');
+          }
+          continue;
+        }
+
+        // 如果還在生成中，繼續等待
+        if (isGenerating) {
+          debugPrint('回覆還在生成中...');
+          continue;
+        }
+
+        // 檢查回覆是否穩定（連續兩次相同）
+        if (response.isNotEmpty && response.length > 50) {
           if (response == lastResponse) {
             stableCount++;
-            if (stableCount >= 2) return response;
+            debugPrint('回覆穩定計數: $stableCount');
+            if (stableCount >= 2) {
+              debugPrint('回覆已穩定，返回結果（長度: ${response.length}）');
+              return response;
+            }
           } else {
             stableCount = 0;
             lastResponse = response;
+            debugPrint('檢測到新回覆，長度: ${response.length}');
           }
         }
       } catch (e) {
@@ -428,7 +656,10 @@ class GeminiWebViewService {
       }
     }
 
-    if (lastResponse.isNotEmpty) return lastResponse;
+    if (lastResponse.isNotEmpty) {
+      debugPrint('超時，返回最後回覆（長度: ${lastResponse.length}）');
+      return lastResponse;
+    }
     throw Exception('等待回覆超時');
   }
 
@@ -476,6 +707,7 @@ class _GeminiLoginScreenState extends State<GeminiLoginScreen> {
 
     _isCheckingLogin = true;
 
+    // 使用與主服務相同的檢查邏輯
     const jsCode = '''
       (function() {
         const loginIndicators = [
@@ -485,22 +717,55 @@ class _GeminiLoginScreenState extends State<GeminiLoginScreen> {
           '認識 Gemini',
           '認識 Gemini：你的專屬 AI 助理',
           '試用應用程式',
-          '認識 Gemini：'
+          '認識 Gemini：',
+          'Sign in',
+          'Log in',
+          '登入'
         ];
 
         const pageText = document.body ? document.body.innerText : '';
+        let foundLoginIndicator = false;
+
         for (const indicator of loginIndicators) {
           if (pageText.includes(indicator)) {
-            return 'NOT_LOGGED_IN';
+            foundLoginIndicator = true;
+            break;
           }
         }
-        return 'LOGGED_IN';
+
+        // 檢查是否有輸入框可用
+        const inputSelectors = [
+          'div[contenteditable="true"]',
+          'div[role="textbox"]',
+          'textarea',
+          'rich-textarea'
+        ];
+
+        let hasInputBox = false;
+        for (const selector of inputSelectors) {
+          const elements = document.querySelectorAll(selector);
+          for (const el of elements) {
+            if (el.offsetParent !== null && el.getBoundingClientRect().height > 0) {
+              hasInputBox = true;
+              break;
+            }
+          }
+          if (hasInputBox) break;
+        }
+
+        if (hasInputBox && !foundLoginIndicator) {
+          return 'LOGGED_IN';
+        }
+        if (foundLoginIndicator) {
+          return 'NOT_LOGGED_IN';
+        }
+        return 'UNKNOWN';
       })();
     ''';
 
     try {
       final result = await _webViewController!.evaluateJavascript(source: jsCode);
-      final isLoggedIn = result != 'NOT_LOGGED_IN';
+      final isLoggedIn = result == 'LOGGED_IN';
 
       debugPrint('登入畫面檢測狀態: ${isLoggedIn ? '已登入' : '未登入'}');
 
@@ -520,6 +785,7 @@ class _GeminiLoginScreenState extends State<GeminiLoginScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
+      resizeToAvoidBottomInset: true, // 確保鍵盤彈出時調整視窗
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,13 +812,23 @@ class _GeminiLoginScreenState extends State<GeminiLoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             LinearProgressIndicator(value: _progress),
-            Flexible(
+            Expanded( // 使用 Expanded 而不是 Flexible
               child: InAppWebView(
                 initialUrlRequest: URLRequest(url: WebUri('https://gemini.google.com/')),
                 initialSettings: InAppWebViewSettings(
                   userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
                   javaScriptEnabled: true,
                   domStorageEnabled: true,
+                  cacheEnabled: true,
+                  // 鍵盤相關設定
+                  supportZoom: true,
+                  useWideViewPort: true,
+                  loadWithOverviewMode: false,
+                  // Cookie 和 Session
+                  saveFormData: true,
+                  thirdPartyCookiesEnabled: true,
+                  // 硬體加速
+                  hardwareAcceleration: true,
                 ),
                 onWebViewCreated: (controller) {
                   _webViewController = controller;
@@ -570,6 +846,9 @@ class _GeminiLoginScreenState extends State<GeminiLoginScreen> {
                     (_) => _checkLoginStatus(),
                   );
                 },
+                // 防止輸入框跳掉
+                onEnterFullscreen: (controller) {},
+                onExitFullscreen: (controller) {},
               ),
             ),
           ],

@@ -1,12 +1,12 @@
 // bike_station_card.dart
-// UBike 站點卡片元件
+// YouBike 站點卡片元件
 
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/bike_station.dart';
 import '../ui_theme.dart';
 
-/// UBike 站點卡片
+/// YouBike 站點卡片
 class BikeStationCard extends StatelessWidget {
   final BikeStation station;
   final VoidCallback? onTap;

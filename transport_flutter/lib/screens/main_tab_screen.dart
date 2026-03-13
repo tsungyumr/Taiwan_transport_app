@@ -199,15 +199,19 @@ class _MainTabScreenState extends State<MainTabScreen>
       body: TabBarView(
         controller: _motionTabBarController,
         physics: const NeverScrollableScrollPhysics(), // 禁用滑動切換，避免與列表衝突
-        children: const [
+        children: [
           // 公車 tab 內容
-          BusTabContent(),
-          // 火車 tab 內容
-          RailwayTabView(),
-          // 高鐵 tab 內容
-          THSRTabView(),
+          const BusTabContent(),
+          // 火車 tab 內容 - 傳入目前選中的 tab 索引
+          RailwayTabView(
+            isActive: _motionTabBarController?.index == 1,
+          ),
+          // 高鐵 tab 內容 - 傳入目前選中的 tab 索引
+          THSRTabView(
+            isActive: _motionTabBarController?.index == 2,
+          ),
           // 腳踏車 tab 內容
-          BikeTabView(),
+          const BikeTabView(),
         ],
       ),
       // 全局浮動操作按鈕選單
@@ -306,19 +310,25 @@ class _MainTabScreenState extends State<MainTabScreen>
     );
   }
 
-  // 清除 AI 緩存並顯示輸入對話框
+  // 清除 AI 緩存並顯示輸入對話框（保留地點作為預設值，讓用戶可以修改後重新規劃）
   void _clearAICacheAndShowDialog() {
     // 先關閉當前的結果畫面
     Navigator.pop(context);
 
+    // 只清除結果緩存，保留地點供對話框預設
     setState(() {
       _cachedAIResult = null;
-      _cachedFromLocation = null;
-      _cachedToLocation = null;
     });
 
-    // 顯示輸入對話框
-    _showAIPlanDialog();
+    // 顯示輸入對話框，傳入現有地點作為預設
+    AIPlanDialog.show(
+      context,
+      initialFromLocation: _cachedFromLocation,
+      initialToLocation: _cachedToLocation,
+      onSubmit: (newFromLocation, newToLocation) {
+        _startAIPlanning(newFromLocation, newToLocation);
+      },
+    );
   }
 
   // 開始 AI 規劃
@@ -414,23 +424,39 @@ class _MainTabScreenState extends State<MainTabScreen>
 
 // 火車 Tab 視圖 - 直接使用 RailwayScreen 的內容（隱藏 AppBar）
 class RailwayTabView extends StatelessWidget {
-  const RailwayTabView({super.key});
+  final bool isActive;
+
+  const RailwayTabView({
+    super.key,
+    required this.isActive,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // 直接使用 RailwayScreen，隱藏其 AppBar
-    return const RailwayScreen(showAppBar: false);
+    // 傳入 isActive 控制何時載入資料
+    return RailwayScreen(
+      showAppBar: false,
+      isActive: isActive,
+    );
   }
 }
 
 // 高鐵 Tab 視圖 - 直接使用 THSRScreen 的內容（隱藏 AppBar）
 class THSRTabView extends StatelessWidget {
-  const THSRTabView({super.key});
+  final bool isActive;
+
+  const THSRTabView({
+    super.key,
+    required this.isActive,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // 使用 THSRScreen，隱藏其 AppBar
-    return const THSRScreen(showAppBar: false);
+    // 使用 THSRScreen，隱藏其 AppBar，傳入 isActive
+    return THSRScreen(
+      showAppBar: false,
+      isActive: isActive,
+    );
   }
 }
 

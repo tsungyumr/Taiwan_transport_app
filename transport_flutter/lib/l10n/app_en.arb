@@ -258,11 +258,11 @@
     "description": "Non-reserved seat"
   },
 
-  "bikeTitle": "UBike",
+  "bikeTitle": "YouBike",
   "@bikeTitle": {
     "description": "Bike page title"
   },
-  "bikeSubtitle": "Search Taipei and New Taipei City UBike stations",
+  "bikeSubtitle": "Search Taipei and New Taipei City YouBike stations",
   "@bikeSubtitle": {
     "description": "Bike feature subtitle"
   },
@@ -422,11 +422,11 @@
 
   "bikeNoStations": "No station data available",
   "@bikeNoStations": {
-    "description": "UBike no stations data message"
+    "description": "YouBike no stations data message"
   },
-  "bikeNoStationsData": "No UBike station data available currently",
+  "bikeNoStationsData": "No YouBike station data available currently",
   "@bikeNoStationsData": {
-    "description": "UBike no data message"
+    "description": "YouBike no data message"
   },
   "bikeNoMatchingStations": "No stations matching \"{query}\"",
   "@bikeNoMatchingStations": {

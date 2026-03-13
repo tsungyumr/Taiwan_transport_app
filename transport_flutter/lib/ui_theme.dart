@@ -34,10 +34,10 @@ class AppColors {
   static const Color bus = Color(0xFF4CAF50);          // 公車綠
   static const Color railway = Color(0xFFFF6D00);      // 台鐵橘
   static const Color thsr = Color(0xFFE53935);         // 高鐵紅
-  static const Color bike = Color(0xFF2E7D32);         // UBike 環保綠
+  static const Color bike = Color(0xFF2E7D32);         // YouBike 環保綠
 }
 
-/// UBike 專屬顏色
+/// YouBike 專屬顏色
 class BikeColors {
   // 主要環保綠色
   static const Color primary = Color(0xFF2E7D32);      // 深綠色

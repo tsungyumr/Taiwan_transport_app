@@ -1,12 +1,12 @@
 // bike_api_service.dart
-// UBike API 服務
+// YouBike API 服務
 
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '../models/bike_station.dart';
 
-/// UBike API 服務類別
+/// YouBike API 服務類別
 class BikeApiService {
   static const String _baseUrl = 'http://10.0.2.2:8001/api';
 

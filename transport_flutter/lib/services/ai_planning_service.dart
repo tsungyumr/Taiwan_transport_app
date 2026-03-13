@@ -522,7 +522,12 @@ class AIPlanningService {
     buffer.writeln('   - 每個方案請包含：預估總時間、預估費用、詳細轉乘步驟');
     buffer.writeln('   - 規劃時請考慮：公車、台鐵、高鐵、捷運(MRT)、YouBike 等各種組合');
     buffer.writeln('   - 如果出發地或目的地附近有捷運站，請優先考慮捷運方案');
-    buffer.writeln('   - 最後一個方案請加上「(健身方案)」：建議騎腳踏車前往，並列出出發地附近所有可租借的YouBike站點（含可借車輛數），以及目的地附近可還車的站點，開玩笑地描述這是最健康環保的方式');
+    buffer.writeln('   - 【重要】如果出發地附近沒有台鐵車站（距離 > 3公里）或高鐵車站（距離 > 10公里），請不要建議搭乘台鐵或高鐵，因為轉車會很麻煩');
+    buffer.writeln('   - 【重要】如果出發地附近沒有公車站（距離 > 500公尺），請不要建議搭乘公車');
+    buffer.writeln('   - 【重要】如果出發地和目的地距離很近（< 3公里），且附近沒有台鐵/高鐵車站，請不要建議搭乘台鐵或高鐵，這樣的建議會很奇怪');
+    buffer.writeln('   - 最後一個方案請加上「(健身方案)」：');
+    buffer.writeln('     * 如果有 YouBike 租借站：建議騎腳踏車前往，並列出出發地附近所有可租借的 YouBike 站點（含可借車輛數），以及目的地附近可還車的站點，開玩笑地描述這是最健康環保的方式，還能順便健身');
+    buffer.writeln('     * 如果附近沒有 YouBike 站：建議徒步或跑步前往（計算步行距離和時間），開玩笑地描述這是最健康環保的方式，還能順便健身');
     buffer.writeln('2. 備用方案（如果主要方案不可行時的替代選擇）');
     buffer.writeln('3. 注意事項（如尖峰時段建議、步行距離、轉乘提醒、捷運班次等）');
     buffer.writeln();
@@ -581,12 +586,17 @@ class AIPlanningService {
     debugPrint('生成的 Prompt:');
     debugPrint(prompt);
 
-    // 3. 重新初始化 WebView 並發送到 Gemini
-    onStatusUpdate?.call('正在初始化 Gemini AI...');
+    // 3. 使用單例模式的 GeminiWebViewService，不要每次重置
+    onStatusUpdate?.call('正在連接 Gemini AI...');
     final geminiService = GeminiWebViewService();
 
-    // 重新載入 WebView，確保每次規劃都是全新的對話
-    await geminiService.reset();
+    // 只有在未初始化時才初始化，不要每次都重置
+    if (!geminiService.isInitialized) {
+      debugPrint('初始化 Gemini WebView...');
+      await geminiService.initialize();
+    } else {
+      debugPrint('Gemini WebView 已初始化，直接使用');
+    }
 
     onStatusUpdate?.call('正在詢問 Gemini AI...');
     // 傳遞 context 參數，讓 WebView 可以在需要時顯示登入介面

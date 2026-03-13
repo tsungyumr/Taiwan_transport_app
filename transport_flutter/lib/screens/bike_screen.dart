@@ -1,5 +1,5 @@
 // bike_screen.dart
-// UBike 腳踏車主頁面
+// YouBike 腳踏車主頁面
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -161,7 +161,7 @@ class _BikeScreenState extends State<BikeScreen> {
     });
   }
 
-  /// 載入所有 UBike 站點
+  /// 載入所有 YouBike 站點
   Future<void> _loadStations() async {
     final l10n = AppLocalizations.of(context)!;
     setState(() => _isLoading = true);

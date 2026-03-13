@@ -13,15 +13,21 @@ import 'location_picker_map.dart';
 /// 顯示出發地、目的地輸入框及 GPS 抓取功能
 class AIPlanDialog extends StatefulWidget {
   final Function(String fromLocation, String toLocation) onSubmit;
+  final String? initialFromLocation;
+  final String? initialToLocation;
 
   const AIPlanDialog({
     super.key,
     required this.onSubmit,
+    this.initialFromLocation,
+    this.initialToLocation,
   });
 
   /// 顯示對話框的靜態方法
   static Future<void> show(BuildContext context, {
     required Function(String fromLocation, String toLocation) onSubmit,
+    String? initialFromLocation,
+    String? initialToLocation,
   }) async {
     return showModalBottomSheet(
       context: context,
@@ -29,6 +35,8 @@ class AIPlanDialog extends StatefulWidget {
       backgroundColor: Colors.transparent,
       builder: (context) => AIPlanDialog(
         onSubmit: onSubmit,
+        initialFromLocation: initialFromLocation,
+        initialToLocation: initialToLocation,
       ),
     );
   }
@@ -46,9 +54,9 @@ class _AIPlanDialogState extends State<AIPlanDialog> {
   @override
   void initState() {
     super.initState();
-    // 確保輸入框在每次開啟時都是空的
-    _fromController.text = '';
-    _toController.text = '';
+    // 如果有初始值，使用初始值；否則清空
+    _fromController.text = widget.initialFromLocation ?? '';
+    _toController.text = widget.initialToLocation ?? '';
   }
 
   @override

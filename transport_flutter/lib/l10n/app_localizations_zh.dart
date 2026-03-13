@@ -191,10 +191,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get thsrSeatFree => '自由';
 
   @override
-  String get bikeTitle => 'UBike 腳踏車';
+  String get bikeTitle => 'YouBike 腳踏車';
 
   @override
-  String get bikeSubtitle => '查詢台北市、新北市 UBike 腳踏車';
+  String get bikeSubtitle => '查詢台北市、新北市 YouBike 腳踏車';
 
   @override
   String get bikeSearchHint => '搜尋站點或地點...';
@@ -310,7 +310,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bikeNoStations => '暫無站點資料';
 
   @override
-  String get bikeNoStationsData => '目前沒有可用的 UBike 站點資料';
+  String get bikeNoStationsData => '目前沒有可用的 YouBike 站點資料';
 
   @override
   String bikeNoMatchingStations(String query) {

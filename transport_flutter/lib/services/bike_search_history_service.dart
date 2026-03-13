@@ -1,11 +1,11 @@
 // bike_search_history_service.dart
-// UBike 站點搜尋歷史服務
+// YouBike 站點搜尋歷史服務
 
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/bike_station.dart';
 
-/// UBike 站點觀看歷史項目
+/// YouBike 站點觀看歷史項目
 class BikeSearchHistoryItem {
   final String stationId;
   final String name;
@@ -78,7 +78,7 @@ class BikeSearchHistoryItem {
   }
 }
 
-/// UBike 站點搜尋歷史服務
+/// YouBike 站點搜尋歷史服務
 class BikeSearchHistoryService {
   static const String _storageKey = 'bike_search_history';
   static const int _maxHistoryItems = 50; // 最多保存的歷史記錄數

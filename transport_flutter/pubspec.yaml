@@ -25,6 +25,10 @@ dependencies:
   url_launcher: ^6.2.0
   flutter_speed_dial: ^7.0.0
   flutter_inappwebview: ^6.0.0
+  # Firebase 插件
+  firebase_core: ^3.12.0
+  firebase_crashlytics: ^4.3.4
+  firebase_analytics: ^11.4.3
 
 dev_dependencies:
   json_serializable: ^6.7.1

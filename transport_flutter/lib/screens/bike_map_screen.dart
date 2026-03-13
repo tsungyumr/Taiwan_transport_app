@@ -1,5 +1,5 @@
 // bike_map_screen.dart
-// UBike 地圖頁面
+// YouBike 地圖頁面
 
 import 'dart:math';
 
@@ -14,7 +14,7 @@ import '../l10n/app_localizations.dart';
 import '../widgets/station_marker.dart';
 import '../widgets/station_detail_card.dart';
 
-/// UBike 地圖頁面
+/// YouBike 地圖頁面
 class BikeMapScreen extends StatefulWidget {
   final BikeStation? initialStation;
 

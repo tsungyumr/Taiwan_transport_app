@@ -258,11 +258,11 @@
     "description": "自由座"
   },
 
-  "bikeTitle": "UBike 腳踏車",
+  "bikeTitle": "YouBike 腳踏車",
   "@bikeTitle": {
     "description": "腳踏車頁面標題"
   },
-  "bikeSubtitle": "查詢台北市、新北市 UBike 腳踏車",
+  "bikeSubtitle": "查詢台北市、新北市 YouBike 腳踏車",
   "@bikeSubtitle": {
     "description": "腳踏車功能副標題"
   },
@@ -422,11 +422,11 @@
 
   "bikeNoStations": "暫無站點資料",
   "@bikeNoStations": {
-    "description": "UBike 無站點資料提示"
+    "description": "YouBike 無站點資料提示"
   },
-  "bikeNoStationsData": "目前沒有可用的 UBike 站點資料",
+  "bikeNoStationsData": "目前沒有可用的 YouBike 站點資料",
   "@bikeNoStationsData": {
-    "description": "UBike 無資料提示"
+    "description": "YouBike 無資料提示"
   },
   "bikeNoMatchingStations": "沒有符合 \"{query}\" 的站點",
   "@bikeNoMatchingStations": {

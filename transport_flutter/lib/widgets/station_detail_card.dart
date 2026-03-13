@@ -1,5 +1,5 @@
 // station_detail_card.dart
-// UBike 站點底部詳情卡片
+// YouBike 站點底部詳情卡片
 
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,7 +7,7 @@ import '../models/bike_station.dart';
 import '../ui_theme.dart';
 import '../l10n/app_localizations.dart';
 
-/// UBike 站點詳情卡片
+/// YouBike 站點詳情卡片
 class StationDetailCard extends StatelessWidget {
   final BikeStation station;
   final VoidCallback onClose;
