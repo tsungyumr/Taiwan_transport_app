@@ -5,7 +5,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 
 import '../firebase_options.dart';
 
@@ -294,7 +293,7 @@ class FirebaseService {
       status['log_test'] = 'success';
 
       // 檢查是否啟用收集
-      final isEnabled = await _crashlytics!.isCrashlyticsCollectionEnabled;
+      final isEnabled = _crashlytics!.isCrashlyticsCollectionEnabled;
       status['collection_enabled'] = isEnabled;
 
       // 設定測試用戶識別碼

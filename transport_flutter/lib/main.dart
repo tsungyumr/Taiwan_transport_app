@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'l10n/app_localizations.dart';
 import 'providers/language_provider.dart';
 import 'screens/main_tab_screen.dart';
+import 'screens/splash_screen.dart';
 import 'ui_theme.dart';
 import 'services/firebase_service.dart';
 
@@ -56,7 +57,7 @@ class TaiwanTransportApp extends ConsumerWidget {
         return const Locale('en');
       },
 
-      home: const MainTabScreen(),
+      home: const SplashScreen(),
     );
   }
 }

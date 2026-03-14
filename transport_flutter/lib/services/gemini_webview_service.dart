@@ -101,7 +101,7 @@ class GeminiWebViewService {
       },
       onConsoleMessage: (controller, consoleMessage) {
         // 過濾常見的無害訊息
-        final msg = consoleMessage.message ?? '';
+        final msg = consoleMessage.message;
         if (!msg.contains('Content Security Policy') &&
             !msg.contains('googletagmanager') &&
             !msg.contains('googleadservices') &&
@@ -125,7 +125,7 @@ class GeminiWebViewService {
     if (_webViewController == null) return;
 
     // 更全面的檢查：包括登入指示器和輸入框存在性
-    final jsCode = '''
+    const jsCode = '''
       (function() {
         const loginIndicators = [
           '登入即可開始',
@@ -253,7 +253,7 @@ class GeminiWebViewService {
   Future<void> _injectHelperScript() async {
     if (_webViewController == null) return;
 
-    final helperScript = '''
+    const helperScript = '''
       (function() {
         // 確保頁面可以正常運作
         window.flutter_inappwebview = window.flutter_inappwebview || {};
@@ -331,7 +331,7 @@ class GeminiWebViewService {
       debugPrint('等待輸入框準備好...');
       bool inputReady = false;
       for (int i = 0; i < 10; i++) {
-        final checkJs = '''
+        const checkJs = '''
           (function() {
             const selectors = [
               'div[contenteditable="true"]',
@@ -559,7 +559,7 @@ class GeminiWebViewService {
       await Future.delayed(const Duration(seconds: 2));
 
       try {
-        final jsCode = '''
+        const jsCode = '''
           (function() {
             // 使用多種選擇器嘗試找到回覆內容
             const selectors = [

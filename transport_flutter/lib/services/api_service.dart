@@ -1,14 +1,10 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:taiwan_transport_app/config.dart';
 import '../models/models.dart';
 
 class ApiService {
-  // 修改為你的後端伺服器地址
-  // 如果後端在手機上運行，需要使用實際 IP 位址
-  // 例如: http://192.168.1.x:8000/api
-  //static const String baseUrl = 'http://zaizaicat.com:8000/api'; // Android 模擬器專用
-  static const String baseUrl = 'http://10.0.2.2:8001/api'; // iOS 模擬器/本地端
-
   final http.Client _client = http.Client();
 
   // ----- 公車 API -----
@@ -17,7 +13,7 @@ class ApiService {
     try {
       final queryParams = routeName != null ? {'route_name': routeName} : null;
       final response = await _client.get(
-        Uri.parse('$baseUrl/bus/routes').replace(queryParameters: queryParams),
+        Uri.parse('${AppConfig.baseUrl}${AppConfig.getBusRoutesApi}').replace(queryParameters: queryParams),
       );
       
       if (response.statusCode == 200) {
@@ -26,7 +22,9 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('Error fetching bus routes: $e');
+      if (kDebugMode) {
+        print('Error fetching bus routes: $e');
+      }
       return [];
     }
   }
@@ -34,7 +32,7 @@ class ApiService {
   Future<List<BusTimeEntry>> getBusTimetable(String routeId) async {
     try {
       final response = await _client.get(
-        Uri.parse('$baseUrl/bus/timetable/$routeId'),
+        Uri.parse('${AppConfig.baseUrl}${AppConfig.getBusTimetableApi}$routeId'),
       );
       
       if (response.statusCode == 200) {
@@ -43,7 +41,9 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('Error fetching bus timetable: $e');
+      if (kDebugMode) {
+        print('Error fetching bus timetable: $e');
+      }
       return [];
     }
   }
@@ -54,7 +54,7 @@ class ApiService {
     try {
       final queryParams = lang != null ? {'lang': lang} : null;
       final response = await _client.get(
-        Uri.parse('$baseUrl/railway/stations').replace(queryParameters: queryParams),
+        Uri.parse('${AppConfig.baseUrl}${AppConfig.getRailwayStationsApi}').replace(queryParameters: queryParams),
       );
 
       if (response.statusCode == 200) {
@@ -63,7 +63,9 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('Error fetching railway stations: $e');
+      if (kDebugMode) {
+        print('Error fetching railway stations: $e');
+      }
       return [];
     }
   }
@@ -86,7 +88,7 @@ class ApiService {
       if (lang != null) queryParams['lang'] = lang;
 
       final response = await _client.get(
-        Uri.parse('$baseUrl/railway/timetable').replace(queryParameters: queryParams),
+        Uri.parse('${AppConfig.baseUrl}${AppConfig.getRailwayTimetableApi}').replace(queryParameters: queryParams),
       );
 
       if (response.statusCode == 200) {
@@ -95,7 +97,9 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('Error fetching railway timetable: $e');
+      if (kDebugMode) {
+        print('Error fetching railway timetable: $e');
+      }
       return [];
     }
   }
@@ -106,7 +110,7 @@ class ApiService {
     try {
       final queryParams = lang != null ? {'lang': lang} : null;
       final response = await _client.get(
-        Uri.parse('$baseUrl/thsr/stations').replace(queryParameters: queryParams),
+        Uri.parse('${AppConfig.baseUrl}${AppConfig.getTHSRStationsApi}').replace(queryParameters: queryParams),
       );
 
       if (response.statusCode == 200) {
@@ -115,7 +119,9 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('Error fetching THSR stations: $e');
+      if (kDebugMode) {
+        print('Error fetching THSR stations: $e');
+      }
       return [];
     }
   }
@@ -140,7 +146,7 @@ class ApiService {
       if (lang != null) queryParams['lang'] = lang;
 
       final response = await _client.get(
-        Uri.parse('$baseUrl/thsr/timetable').replace(queryParameters: queryParams),
+        Uri.parse('${AppConfig.baseUrl}${AppConfig.getTHSRTimetableApi}').replace(queryParameters: queryParams),
       );
 
       if (response.statusCode == 200) {
@@ -149,7 +155,9 @@ class ApiService {
       }
       return [];
     } catch (e) {
-      print('Error fetching THSR timetable: $e');
+      if (kDebugMode) {
+        print('Error fetching THSR timetable: $e');
+      }
       return [];
     }
   }

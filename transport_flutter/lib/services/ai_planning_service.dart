@@ -371,28 +371,6 @@ class AIPlanningService {
     return match?.group(1)?.trim() ?? extraInfo;
   }
 
-  /// 找出出發地和目的地都有的公車路線
-  List<String?> _findCommonBusRoutes(
-    List<StationInfo> fromBusStops,
-    List<StationInfo> toBusStops,
-  ) {
-    // 提取出發地的所有路線名稱
-    final fromRoutes = fromBusStops
-        .map((stop) => _extractRouteName(stop.extraInfo))
-        .where((route) => route != null && route.isNotEmpty)
-        .toSet();
-
-    // 提取目的地的所有路線名稱
-    final toRoutes = toBusStops
-        .map((stop) => _extractRouteName(stop.extraInfo))
-        .where((route) => route != null && route.isNotEmpty)
-        .toSet();
-
-    // 找出交集
-    final commonRoutes = fromRoutes.intersection(toRoutes).toList();
-    return commonRoutes;
-  }
-
   /// 生成完整的 AI 規劃 Prompt
   String generateEnhancedPrompt({
     required String fromLocation,
@@ -597,7 +575,6 @@ class AIPlanningService {
     } else {
       debugPrint('Gemini WebView 已初始化，直接使用');
     }
-
     onStatusUpdate?.call('正在詢問 Gemini AI...');
     // 傳遞 context 參數，讓 WebView 可以在需要時顯示登入介面
     final response = await geminiService.sendPrompt(prompt, context: context);
